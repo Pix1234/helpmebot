@@ -13,14 +13,16 @@
 //   You should have received a copy of the GNU General Public License
 //   along with Helpmebot.  If not, see http://www.gnu.org/licenses/ .
 // </copyright>
+// <summary>
+//   The fun command.
+// </summary>
 // --------------------------------------------------------------------------------------------------------------------
 namespace helpmebot6.Commands.FunStuff
 {
-    using Helpmebot;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     ///     The fun command.
@@ -44,13 +46,24 @@ namespace helpmebot6.Commands.FunStuff
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        protected FunCommand(
-            LegacyUser source, 
-            string channel, 
-            string[] args, 
-            ICommandServiceHelper commandServiceHelper)
+        protected FunCommand(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
+        }
+
+        #endregion
+
+        #region Public Methods and Operators
+
+        /// <summary>
+        ///     The test access.
+        /// </summary>
+        /// <returns>
+        ///     The <see cref="bool" />.
+        /// </returns>
+        public override bool CanExecute()
+        {
+            return !this.CommandChannel.HedgehogCurled && base.CanExecute();
         }
 
         #endregion
@@ -63,26 +76,15 @@ namespace helpmebot6.Commands.FunStuff
         /// <returns>
         ///     The <see cref="CommandResponseHandler" />.
         /// </returns>
-        protected override CommandResponseHandler OnAccessDenied()
+        protected override CommandResponseHandler OnLegacyAccessDenied()
         {
             string message = this.CommandServiceHelper.MessageService.RetrieveMessage(
                 Messages.HedgehogAccessDenied, 
                 this.Channel, 
                 null);
-            return LegacyConfig.Singleton()["hedgehog", this.Channel] == "false"
-                       ? base.OnAccessDenied()
+            return !this.CommandChannel.HedgehogCurled
+                       ? base.OnLegacyAccessDenied()
                        : new CommandResponseHandler(message, CommandResponseDestination.PrivateMessage);
-        }
-
-        /// <summary>
-        ///     The test access.
-        /// </summary>
-        /// <returns>
-        ///     The <see cref="bool" />.
-        /// </returns>
-        protected override bool TestAccess()
-        {
-            return LegacyConfig.Singleton()["hedgehog", this.Channel] == "false" && base.TestAccess();
         }
 
         #endregion

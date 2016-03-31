@@ -86,6 +86,11 @@ namespace Helpmebot.Legacy.Database
         /// </returns>
         public bool Connect()
         {
+            if (this.connection != null && this.connection.State == ConnectionState.Open)
+            {
+                return true;
+            }
+
             IPrivateConfiguration privateConfiguration = this.configurationHelper.PrivateConfiguration;
 
             try

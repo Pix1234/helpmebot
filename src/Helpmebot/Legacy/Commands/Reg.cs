@@ -20,13 +20,16 @@
 
 namespace helpmebot6.Commands
 {
+    using Helpmebot.Attributes;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     ///   Returns the registration date of a wikipedian. Alias for Registration
     /// </summary>
-    internal class Reg : Registration
+    [CommandInvocation("reg")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Reg : Registration
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Reg"/> class.
@@ -43,7 +46,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Reg(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Reg(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

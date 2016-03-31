@@ -21,8 +21,8 @@ namespace Helpmebot.Services.Interfaces
 {
     using System.Collections.Generic;
 
+    using Helpmebot.IRC.Events;
     using Helpmebot.Model;
-    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// The JoinMessageService interface.
@@ -38,7 +38,7 @@ namespace Helpmebot.Services.Interfaces
         /// The channel.
         /// </param>
         /// <returns>
-        /// The <see cref="IList"/>.
+        /// The <see cref="IList{WelcomeUser}"/>.
         /// </returns>
         IList<WelcomeUser> GetExceptions(string channel);
 
@@ -49,20 +49,20 @@ namespace Helpmebot.Services.Interfaces
         /// The channel.
         /// </param>
         /// <returns>
-        /// The <see cref="IList"/>.
+        /// The <see cref="IList{WelcomeUser}"/>.
         /// </returns>
         IList<WelcomeUser> GetWelcomeUsers(string channel);
 
         /// <summary>
-        /// The welcome.
+        /// The welcome newbie on join event.
         /// </summary>
-        /// <param name="user">
-        /// The user.
+        /// <param name="sender">
+        /// The sender.
         /// </param>
-        /// <param name="channel">
-        /// The channel.
+        /// <param name="e">
+        /// The e.
         /// </param>
-        void Welcome(IUser user, string channel);
+        void WelcomeNewbieOnJoinEvent(object sender, JoinEventArgs e);
 
         #endregion
     }

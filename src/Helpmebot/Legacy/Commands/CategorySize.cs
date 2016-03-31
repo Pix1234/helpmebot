@@ -23,17 +23,20 @@ namespace helpmebot6.Commands
     using System;
     using System.Globalization;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
     using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Count how many articles are in a category.
     /// </summary>
-    internal class Categorysize : GenericCommand
+    [CommandInvocation("categorysize")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Categorysize : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Categorysize"/> class.
@@ -50,7 +53,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Categorysize(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Categorysize(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -88,9 +91,7 @@ namespace helpmebot6.Commands
         /// </remarks>
         protected CommandResponseHandler GetSizeOfCategory(string categoryName)
         {
-            string baseWiki = LegacyConfig.Singleton()["baseWiki", this.Channel];
-
-            MediaWikiSite mediaWikiSite = this.CommandServiceHelper.MediaWikiSiteRepository.GetById(int.Parse(baseWiki));
+            MediaWikiSite mediaWikiSite = this.CommandChannel.BaseWiki;
 
             var messageService = this.CommandServiceHelper.MessageService;
             try

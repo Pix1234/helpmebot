@@ -31,11 +31,17 @@ namespace Helpmebot.Persistence.Mappings
         /// </summary>
         public ChannelMap()
         {
-            this.Table("channel");
-            this.Id(x => x.Id, "channel_id");
-            this.Map(x => x.Name, "channel_name");
-            this.Map(x => x.Password, "channel_password");
-            this.Map(x => x.Enabled, "channel_enabled");
+            this.Table("channelnew");
+            this.Id(x => x.Id, "id").GeneratedBy.GuidComb();
+            this.Map(x => x.Name, "name");
+            this.Map(x => x.Password, "password");
+            this.Map(x => x.Enabled, "enabled");
+            this.Map(x => x.IsSilenced, "silence");
+            this.Map(x => x.HedgehogCurled, "hedgehog");
+            this.Map(x => x.AutoLinkEnabled, "autolink");
+            this.Map(x => x.UseLongUserInfo, "longuserinfo");
+
+            this.References(x => x.BaseWiki, "basewiki");
         }
     }
 }

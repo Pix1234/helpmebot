@@ -20,13 +20,16 @@
 
 namespace helpmebot6.Commands
 {
+    using Helpmebot.Attributes;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     ///   Returns the current date/time. Alias for Time.
     /// </summary>
-    internal class Date : Time
+    [CommandInvocation("date")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Date : Time
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Date"/> class.
@@ -43,7 +46,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Date(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Date(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

@@ -21,14 +21,18 @@
 namespace helpmebot6.Commands
 {
     using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Sends a raw client-to-client protocol command
     /// </summary>
-    internal class Rawctcp : GenericCommand
+    [CommandInvocation("rawctcp")]
+    [CommandFlag(Helpmebot.Model.Flag.Debug)]
+    public class Rawctcp : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Rawctcp"/> class.
@@ -45,7 +49,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Rawctcp(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Rawctcp(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

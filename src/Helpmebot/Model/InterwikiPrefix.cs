@@ -16,6 +16,8 @@
 // --------------------------------------------------------------------------------------------------------------------
 namespace Helpmebot.Model
 {
+    using System.Text;
+
     using Helpmebot.Persistence.Interfaces;
 
     /// <summary>
@@ -44,6 +46,17 @@ namespace Helpmebot.Model
         ///     Gets or sets the url.
         /// </summary>
         public virtual byte[] Url { get; set; }
+
+        /// <summary>
+        /// The get url.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="string"/>.
+        /// </returns>
+        public virtual string GetUrl()
+        {
+            return Encoding.UTF8.GetString(this.Url);
+        }
 
         #endregion
     }

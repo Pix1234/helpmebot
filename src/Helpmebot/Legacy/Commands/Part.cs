@@ -20,16 +20,19 @@
 
 namespace helpmebot6.Commands
 {
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Leave an IRC channel
     /// </summary>
-    internal class Part : GenericCommand
+    [CommandInvocation("part")]
+    [CommandFlag(Helpmebot.Model.Flag.LegacySuperuser)]
+    public class Part : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Part"/> class.
@@ -46,7 +49,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Part(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Part(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -57,16 +60,10 @@ namespace helpmebot6.Commands
         /// <returns>the response</returns>
         protected override CommandResponseHandler ExecuteCommand()
         {
-            if (!this.Channel.StartsWith("#"))
-            {
-                return new CommandResponseHandler("Must be executed from the channel!", CommandResponseDestination.PrivateMessage);
-            }
+            var channel = this.DatabaseSession.QueryOver<Channel>().Where(x => x.Name == this.Channel).SingleOrDefault();
 
-            var channelRepository = this.CommandServiceHelper.ChannelRepository;
-
-            var channel = channelRepository.GetByName(this.Channel);
             channel.Enabled = false;
-            channelRepository.Save(channel);
+            this.DatabaseSession.Save(channel);
 
             string partMessage = this.CommandServiceHelper.MessageService.RetrieveMessage(
                 Messages.RequestedBy,

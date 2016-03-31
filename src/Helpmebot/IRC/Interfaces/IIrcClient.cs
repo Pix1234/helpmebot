@@ -17,7 +17,6 @@
 //   The IrcClient interface.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace Helpmebot.IRC.Interfaces
 {
     using System;
@@ -32,25 +31,38 @@ namespace Helpmebot.IRC.Interfaces
     /// </summary>
     public interface IIrcClient
     {
-        /// <summary>
-        /// The received message.
-        /// </summary>
-        event EventHandler<MessageReceivedEventArgs> ReceivedMessage;
-
-        /// <summary>
-        /// The join received event.
-        /// </summary>
-        event EventHandler<JoinEventArgs> JoinReceivedEvent;
+        #region Public Events
 
         /// <summary>
         /// The invite received event.
         /// </summary>
+        /// <remarks>
+        /// Used with string name reference in MainInstaller. DO NOT RENAME without updating
+        /// that reference as well.
+        /// </remarks>
         event EventHandler<InviteEventArgs> InviteReceivedEvent;
 
         /// <summary>
-        /// Gets or sets the nickname.
+        /// The join received event.
         /// </summary>
-        string Nickname { get; set; }
+        /// <remarks>
+        /// Used with string name reference in MainInstaller. DO NOT RENAME without updating
+        /// that reference as well.
+        /// </remarks>
+        event EventHandler<JoinEventArgs> JoinReceivedEvent;
+
+        /// <summary>
+        /// The received message.
+        /// </summary>
+        /// <remarks>
+        /// Used with string name reference in MainInstaller. DO NOT RENAME without updating
+        /// that reference as well.
+        /// </remarks>
+        event EventHandler<MessageReceivedEventArgs> ReceivedMessage;
+
+        #endregion
+
+        #region Public Properties
 
         /// <summary>
         /// Gets the channels.
@@ -63,14 +75,23 @@ namespace Helpmebot.IRC.Interfaces
         bool NickTrackingValid { get; }
 
         /// <summary>
-        /// Gets the user cache.
+        /// Gets or sets the nickname.
         /// </summary>
-        Dictionary<string, IrcUser> UserCache { get; }
+        string Nickname { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the client logged in to a nickserv account
         /// </summary>
         bool ServicesLoggedIn { get; }
+
+        /// <summary>
+        /// Gets the user cache.
+        /// </summary>
+        Dictionary<string, IrcUser> UserCache { get; }
+
+        #endregion
+
+        #region Public Methods and Operators
 
         /// <summary>
         /// The join.
@@ -79,6 +100,17 @@ namespace Helpmebot.IRC.Interfaces
         /// The channel.
         /// </param>
         void JoinChannel(string channel);
+
+        /// <summary>
+        /// The lookup user.
+        /// </summary>
+        /// <param name="prefix">
+        /// The prefix.
+        /// </param>
+        /// <returns>
+        /// The <see cref="IrcUser"/>.
+        /// </returns>
+        IrcUser LookupUser(string prefix);
 
         /// <summary>
         /// The part channel.
@@ -90,6 +122,14 @@ namespace Helpmebot.IRC.Interfaces
         /// The message.
         /// </param>
         void PartChannel(string channel, string message);
+
+        /// <summary>
+        /// The send.
+        /// </summary>
+        /// <param name="message">
+        /// The message.
+        /// </param>
+        void Send(IMessage message);
 
         /// <summary>
         /// The send message.
@@ -113,12 +153,6 @@ namespace Helpmebot.IRC.Interfaces
         /// </param>
         void SendNotice(string destination, string message);
 
-        /// <summary>
-        /// The send.
-        /// </summary>
-        /// <param name="message">
-        /// The message.
-        /// </param>
-        void Send(IMessage message);
+        #endregion
     }
 }

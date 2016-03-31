@@ -30,6 +30,8 @@ namespace Helpmebot.Tests
 
     using Moq;
 
+    using NHibernate;
+
     using NUnit.Framework;
 
     /// <summary>
@@ -53,6 +55,16 @@ namespace Helpmebot.Tests
         protected Mock<IConfigurationHelper> ConfigurationHelper { get; set; }
 
         /// <summary>
+        /// Gets or sets the database session.
+        /// </summary>
+        protected Mock<ISession> DatabaseSession { get; set; }
+
+        /// <summary>
+        /// Gets the core config.
+        /// </summary>
+        protected Mock<ICoreConfiguration> CoreConfig { get; private set; }
+
+        /// <summary>
         /// The common setup.
         /// </summary>
         [TestFixtureSetUp]
@@ -72,14 +84,16 @@ namespace Helpmebot.Tests
             this.Logger.Setup(x => x.ErrorFormat(It.IsAny<string>(), It.IsAny<IEnumerable<object>>())).Callback(() => Assert.Fail("Logger recorded error."));
 
             var databaseConfig = new Mock<IPrivateConfiguration>();
-            var coreConfig = new Mock<ICoreConfiguration>();
+            this.CoreConfig = new Mock<ICoreConfiguration>();
             this.IrcConfiguration = new Mock<IIrcConfiguration>();
 
             this.ConfigurationHelper = new Mock<IConfigurationHelper>();
             this.ConfigurationHelper.Setup(x => x.PrivateConfiguration)
                 .Returns(databaseConfig.Object);
-            this.ConfigurationHelper.Setup(x => x.CoreConfiguration).Returns(coreConfig.Object);
+            this.ConfigurationHelper.Setup(x => x.CoreConfiguration).Returns(this.CoreConfig.Object);
             this.ConfigurationHelper.Setup(x => x.IrcConfiguration).Returns(this.IrcConfiguration.Object);
+            
+            this.DatabaseSession = new Mock<ISession>();
 
             this.LocalSetup();
         }

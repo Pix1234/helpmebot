@@ -17,7 +17,6 @@
 //   Returns the user information about a specified user
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace helpmebot6.Commands
 {
     using System;
@@ -28,14 +27,17 @@ namespace helpmebot6.Commands
     using Castle.Core.Logging;
 
     using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
-    using Helpmebot.Repositories.Interfaces;
+    using Helpmebot.Model.Interfaces;
+    using Helpmebot.Services.Interfaces;
 
     using Microsoft.Practices.ServiceLocation;
+
+    using NHibernate;
 
     /* returns information about a user
     // what                 how                     info    message
@@ -55,7 +57,9 @@ namespace helpmebot6.Commands
     /// <summary>
     ///   Returns the user information about a specified user
     /// </summary>
-    internal class Userinfo : GenericCommand
+    [CommandInvocation("userinfo")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Userinfo : GenericCommand
     {
         /// <summary>
         /// The response.
@@ -77,7 +81,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Userinfo(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Userinfo(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -90,7 +94,7 @@ namespace helpmebot6.Commands
         {
             var args = this.Arguments;
 
-            bool useLongInfo = bool.Parse(LegacyConfig.Singleton()["useLongUserInfo", this.Channel]);
+            bool useLongInfo = this.CommandChannel.UseLongUserInfo;
 
             if (args.Length > 0)
             {
@@ -150,52 +154,54 @@ namespace helpmebot6.Commands
         /// Gets the user page URL.
         /// </summary>
         /// <param name="userName">Name of the user.</param>
-        /// <param name="channel">The channel.</param>
         /// <returns>the user page url</returns>
-        private static string GetUserPageUrl(string userName, string channel)
+        private static string GetUserPageUrl(string userName)
         {
-            return Linker.GetRealLink(channel, "User:" + userName, true);
+            // FIXME: servicelocator wls
+            var linkService = ServiceLocator.Current.GetInstance<IWikiLinkService>();
+            return linkService.GetLink("User:" + userName).ToString();
         }
 
         /// <summary>
         /// Gets the user talk page URL.
         /// </summary>
         /// <param name="userName">Name of the user.</param>
-        /// <param name="channel">The channel.</param>
         /// <returns>the user talk page url</returns>
-        private static string GetUserTalkPageUrl(string userName, string channel)
+        private static string GetUserTalkPageUrl(string userName)
         {
             if (userName == string.Empty)
             {
                 throw new ArgumentNullException();
             }
 
-            return Linker.GetRealLink(channel, "User_talk:" + userName, true);
+            // FIXME: servicelocator wls
+            var linkService = ServiceLocator.Current.GetInstance<IWikiLinkService>();
+            return linkService.GetLink("User talk:" + userName).ToString();
         }
 
         /// <summary>
         /// Gets the user contributions URL.
         /// </summary>
         /// <param name="userName">Name of the user.</param>
-        /// <param name="channel">The channel.</param>
         /// <returns>the contributions url</returns>
-        private static string GetUserContributionsUrl(string userName, string channel)
+        private static string GetUserContributionsUrl(string userName)
         {
             if (userName == string.Empty)
             {
                 throw new ArgumentNullException();
             }
-            
-            return Linker.GetRealLink(channel, "Special:Contributions/" + userName, true);
+
+            // FIXME: servicelocator wls
+            var linkService = ServiceLocator.Current.GetInstance<IWikiLinkService>();
+            return linkService.GetLink("Special:Contributions/" + userName).ToString();
         }
 
         /// <summary>
         /// Gets the block log URL.
         /// </summary>
         /// <param name="userName">Name of the user.</param>
-        /// <param name="channel">The channel.</param>
         /// <returns>block log url</returns>
-        private static string GetBlockLogUrl(string userName, string channel)
+        private static string GetBlockLogUrl(string userName)
         {
             if (userName == string.Empty)
             {
@@ -205,7 +211,9 @@ namespace helpmebot6.Commands
             // replace mainpage in mainpage url with user:<username>
             userName = userName.Replace(" ", "_");
 
-            return Linker.GetRealLink(channel, "Special:Log?type=block&page=User:" + userName, true);
+            // FIXME: servicelocator wls
+            var linkService = ServiceLocator.Current.GetInstance<IWikiLinkService>();
+            return linkService.GetLink("Special:Log?type=block&page=User:" + userName).ToString();
         }
 
         // TODO: tidy up! why return a value when it's passed by ref anyway?
@@ -218,6 +226,7 @@ namespace helpmebot6.Commands
         /// <param name="channel">The channel.</param>
         /// <returns>the user info</returns>
 // ReSharper disable UnusedMethodReturnValue.Local
+        [Obsolete("Please rewrite and fix me ASAP.")]
         private static UserInformation RetrieveUserInformation(string userName, ref UserInformation initial, string channel)
 // ReSharper restore UnusedMethodReturnValue.Local
         {
@@ -234,20 +243,24 @@ namespace helpmebot6.Commands
 
                 initial.RegistrationDate = Registration.GetRegistrationDate(userName, channel);
 
-                initial.UserPage = GetUserPageUrl(userName, channel);
-                initial.TalkPage = GetUserTalkPageUrl(userName, channel);
-                initial.UserContributions = GetUserContributionsUrl(userName, channel);
-                initial.UserBlockLog = GetBlockLogUrl(userName, channel);
+                initial.UserPage = GetUserPageUrl(userName);
+                initial.TalkPage = GetUserTalkPageUrl(userName);
+                initial.UserContributions = GetUserContributionsUrl(userName);
+                initial.UserBlockLog = GetBlockLogUrl(userName);
 
                 initial.UserAge = Age.GetWikipedianAge(userName, channel);
 
                 initial.EditRate = initial.EditCount / initial.UserAge.TotalDays;
 
-                var baseWiki = LegacyConfig.Singleton()["baseWiki", channel];
+                // FIXME: servicelocator database
+                var db = ServiceLocator.Current.GetInstance<ISession>();
+                Channel channelObject = db.QueryOver<Channel>().Where(x => x.Name == channel).SingleOrDefault();
+                if (channelObject == null)
+                {
+                    throw new ArgumentOutOfRangeException("channel", "Unknown channel");
+                }
 
-                // FIXME: ServiceLocator - mw site repo
-                var mediaWikiSiteRepository = ServiceLocator.Current.GetInstance<IMediaWikiSiteRepository>();
-                MediaWikiSite mediaWikiSite = mediaWikiSiteRepository.GetById(int.Parse(baseWiki));
+                MediaWikiSite mediaWikiSite = channelObject.BaseWiki;
                 BlockInformation bi = mediaWikiSite.GetBlockInformation(userName).FirstOrDefault();
 
                 initial.BlockInformation = bi.Id ?? string.Empty;

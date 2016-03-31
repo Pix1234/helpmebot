@@ -16,16 +16,19 @@
 // --------------------------------------------------------------------------------------------------------------------
 namespace helpmebot6.Commands
 {
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     ///     The configuration cache clear command.
     /// </summary>
-    internal class Configcacheclear : GenericCommand
+    [CommandInvocation("configcacheclear")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Configcacheclear : GenericCommand
     {
         #region Constructors and Destructors
 
@@ -45,7 +48,7 @@ namespace helpmebot6.Commands
         /// The message Service.
         /// </param>
         public Configcacheclear(
-            LegacyUser source, 
+            IUser source, 
             string channel, 
             string[] args, 
             ICommandServiceHelper commandServiceHelper)

@@ -20,6 +20,7 @@
 
 namespace Helpmebot.IRC.Events
 {
+    using Helpmebot.IRC.Interfaces;
     using Helpmebot.IRC.Messages;
     using Helpmebot.Model.Interfaces;
 
@@ -42,8 +43,11 @@ namespace Helpmebot.IRC.Events
         /// <param name="user">
         /// The user.
         /// </param>
-        public UserEventArgsBase(IMessage message, IUser user)
-            : base(message)
+        /// <param name="client">
+        /// The client.
+        /// </param>
+        public UserEventArgsBase(IMessage message, IUser user, IIrcClient client)
+            : base(message, client)
         {
             this.user = user;
         }

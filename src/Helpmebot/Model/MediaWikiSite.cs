@@ -22,7 +22,7 @@ namespace Helpmebot.Model
     /// <summary>
     /// The media wiki site.
     /// </summary>
-    public class MediaWikiSite : EntityBase
+    public class MediaWikiSite : GuidEntityBase
     {
         #region Public Properties
 
@@ -30,31 +30,21 @@ namespace Helpmebot.Model
         /// Gets or sets the API.
         /// </summary>
         public virtual string Api { get; set; }
-
-        /// <summary>
-        /// Gets or sets the database.
-        /// </summary>
-        public virtual string Database { get; set; }
-
-        /// <summary>
-        /// Gets or sets the main page.
-        /// </summary>
-        public virtual string MainPage { get; set; }
-
+        
         /// <summary>
         /// Gets or sets the password.
         /// </summary>
         public virtual string Password { get; set; }
 
         /// <summary>
-        /// Gets or sets the shard.
-        /// </summary>
-        public virtual string Shard { get; set; }
-
-        /// <summary>
         /// Gets or sets the username.
         /// </summary>
         public virtual string Username { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name.
+        /// </summary>
+        public virtual string Name { get; set; }
 
         #endregion
     }

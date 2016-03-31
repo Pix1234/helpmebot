@@ -20,6 +20,7 @@
 
 namespace Helpmebot.IRC.Events
 {
+    using Helpmebot.IRC.Interfaces;
     using Helpmebot.IRC.Messages;
     using Helpmebot.Model.Interfaces;
 
@@ -53,8 +54,8 @@ namespace Helpmebot.IRC.Events
         /// <param name="nickname">
         /// The nickname.
         /// </param>
-        public InviteEventArgs(IMessage message, IUser user, string channel, string nickname)
-            : base(message, user)
+        public InviteEventArgs(IMessage message, IUser user, string channel, string nickname, IIrcClient client)
+            : base(message, user, client)
         {
             this.channel = channel;
             this.nickname = nickname;

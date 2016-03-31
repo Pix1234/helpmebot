@@ -19,16 +19,19 @@ namespace helpmebot6.Commands
     using System.Xml;
 
     using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
     using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
-    using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     ///     Returns the maximum replication lag on the wiki
     /// </summary>
-    internal class Maxlag : GenericCommand
+    [CommandInvocation("maxlag")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Maxlag : GenericCommand
     {
         #region Constructors and Destructors
 
@@ -47,7 +50,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Maxlag(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Maxlag(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -77,11 +80,8 @@ namespace helpmebot6.Commands
         /// <returns>The maximum replication lag</returns>
         private string GetMaxLag()
         {
-            // look up site id
-            string baseWiki = LegacyConfig.Singleton()["baseWiki", this.Channel];
-
             // get api
-            var mediaWikiSite = this.CommandServiceHelper.MediaWikiSiteRepository.GetById(int.Parse(baseWiki));
+            var mediaWikiSite = this.CommandChannel.BaseWiki;
 
             // TODO: use Linq-to-XML
             var uri = mediaWikiSite.Api + "?action=query&meta=siteinfo&siprop=dbrepllag&format=xml";

@@ -21,14 +21,18 @@ namespace helpmebot6.Commands
     using System.Xml.XPath;
 
     using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     ///     The status of ACC.
     /// </summary>
-    internal class Accstatus : GenericCommand
+    [CommandInvocation("accstatus")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Accstatus : GenericCommand
     {
         #region Constructors and Destructors
 
@@ -47,7 +51,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Accstatus(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Accstatus(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

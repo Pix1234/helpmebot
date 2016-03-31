@@ -13,6 +13,9 @@
 //   You should have received a copy of the GNU General Public License
 //   along with Helpmebot.  If not, see http://www.gnu.org/licenses/ .
 // </copyright>
+// <summary>
+//   The database configuration.
+// </summary>
 // --------------------------------------------------------------------------------------------------------------------
 namespace Helpmebot.Configuration.XmlSections
 {
@@ -28,7 +31,19 @@ namespace Helpmebot.Configuration.XmlSections
         #region Public Properties
 
         /// <summary>
-        ///     Gets the debug channel.
+        /// Gets the default command trigger
+        /// </summary>
+        [ConfigurationProperty("commandTrigger", DefaultValue = "!")]
+        public string CommandTrigger
+        {
+            get
+            {
+                return (string)base["commandTrigger"];
+            }
+        }
+
+        /// <summary>
+        /// Gets the debug channel.
         /// </summary>
         [ConfigurationProperty("debugChannel", DefaultValue = "##helpmebot")]
         public string DebugChannel
@@ -40,7 +55,19 @@ namespace Helpmebot.Configuration.XmlSections
         }
 
         /// <summary>
-        ///     Gets the HTTP timeout
+        /// Gets the default interwiki prefix
+        /// </summary>
+        [ConfigurationProperty("defaultInterwikiPrefix", DefaultValue = "w")]
+        public string DefaultInterwikiPrefix
+        {
+            get
+            {
+                return (string)base["defaultInterwikiPrefix"];
+            }
+        }
+
+        /// <summary>
+        /// Gets the HTTP timeout
         /// </summary>
         [ConfigurationProperty("httpTimeout", DefaultValue = 5000)]
         public int HttpTimeout
@@ -52,11 +79,9 @@ namespace Helpmebot.Configuration.XmlSections
         }
 
         /// <summary>
-        ///     Gets the user agent.
+        /// Gets the user agent.
         /// </summary>
-        [ConfigurationProperty(
-            "useragent", 
-            DefaultValue = "Helpmebot/6.0 (+http://helpmebot.org.uk)")]
+        [ConfigurationProperty("useragent", DefaultValue = "Helpmebot/6.0 (+http://helpmebot.org.uk)")]
         public string UserAgent
         {
             get
@@ -66,14 +91,14 @@ namespace Helpmebot.Configuration.XmlSections
         }
 
         /// <summary>
-        ///     Gets the default command trigger
+        /// Gets the user agent.
         /// </summary>
-        [ConfigurationProperty("commandTrigger", DefaultValue = "!")]
-        public string CommandTrigger
+        [ConfigurationProperty("defaultMWSiteName", DefaultValue = "en.wikipedia.org")]
+        public string DefaultMediaWikiSiteName
         {
             get
             {
-                return (string)base["commandTrigger"];
+                return (string)base["defaultMWSiteName"];
             }
         }
 

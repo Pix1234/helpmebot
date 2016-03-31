@@ -17,11 +17,11 @@
 //   Defines the MessageReceivedEventArgs type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace Helpmebot.IRC.Events
 {
     using System;
 
+    using Helpmebot.IRC.Interfaces;
     using Helpmebot.IRC.Messages;
 
     /// <summary>
@@ -29,10 +29,16 @@ namespace Helpmebot.IRC.Events
     /// </summary>
     public class MessageReceivedEventArgs : EventArgs
     {
+        #region Fields
+
         /// <summary>
         /// The message.
         /// </summary>
         private readonly IMessage message;
+
+        #endregion
+
+        #region Constructors and Destructors
 
         /// <summary>
         /// Initialises a new instance of the <see cref="MessageReceivedEventArgs"/> class.
@@ -40,10 +46,23 @@ namespace Helpmebot.IRC.Events
         /// <param name="message">
         /// The message.
         /// </param>
-        public MessageReceivedEventArgs(IMessage message)
+        /// <param name="client">
+        /// The client.
+        /// </param>
+        public MessageReceivedEventArgs(IMessage message, IIrcClient client)
         {
+            this.Client = client;
             this.message = message;
         }
+
+        #endregion
+
+        #region Public Properties
+
+        /// <summary>
+        /// Gets the client.
+        /// </summary>
+        public IIrcClient Client { get; private set; }
 
         /// <summary>
         /// Gets the message.
@@ -55,5 +74,7 @@ namespace Helpmebot.IRC.Events
                 return this.message;
             }
         }
+
+        #endregion
     }
 }

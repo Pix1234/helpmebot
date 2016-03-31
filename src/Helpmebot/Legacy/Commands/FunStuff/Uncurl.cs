@@ -20,17 +20,19 @@
 
 namespace helpmebot6.Commands
 {
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Uncurl command to set the bot's hedgehog status to false.
     /// </summary>
     /// <remarks>This is a fun command, but because FunCommand checks hedgehog is false, that base class can't be used.</remarks>
-    internal class Uncurl : GenericCommand
+    [CommandInvocation("uncurl")]
+    [CommandFlag(Helpmebot.Model.Flag.LegacySuperuser)]
+    public class Uncurl : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Uncurl"/> class.
@@ -47,7 +49,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Uncurl(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Uncurl(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -60,8 +62,12 @@ namespace helpmebot6.Commands
         /// </returns>
         protected override CommandResponseHandler ExecuteCommand()
         {
-            LegacyConfig.Singleton()["hedgehog", this.Channel] = "false";
-            return new CommandResponseHandler(this.CommandServiceHelper.MessageService.RetrieveMessage(Messages.Done, this.Channel, null));
+            this.CommandChannel.HedgehogCurled = false;
+            this.DatabaseSession.Save(this.CommandChannel);
+
+            return
+                new CommandResponseHandler(
+                    this.CommandServiceHelper.MessageService.RetrieveMessage(Messages.Done, this.Channel, null));
         }
     }
 }

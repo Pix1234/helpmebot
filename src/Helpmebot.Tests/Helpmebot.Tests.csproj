@@ -48,6 +48,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\lib\castle.windsor\Castle.Windsor.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Practices.ServiceLocation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\microsoft.practices.servicelocation\Microsoft.Practices.ServiceLocation.dll</HintPath>
+    </Reference>
     <Reference Include="Moq">
       <HintPath>..\..\lib\moq\Moq.dll</HintPath>
     </Reference>
@@ -70,17 +74,29 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Commands\AccessControl\FlagGroupCommandTests.cs" />
+    <Compile Include="Commands\ChannelManagement\JoinCommandTests.cs" />
     <Compile Include="Extensions\ListExtensionsTests.cs" />
     <Compile Include="IRC\IrcClientStateTests.cs" />
     <Compile Include="IRC\IrcClientTests.cs" />
     <Compile Include="IRC\Messages\MessageTests.cs" />
+    <Compile Include="Services\UserFlagServiceTests.cs" />
+    <Compile Include="TestData\IrcUserParseDataSource.cs" />
+    <Compile Include="TestData\IrcUserTestDataSource.cs" />
     <Compile Include="IRC\Model\IrcUserTests.cs" />
-    <Compile Include="Legacy\LegacyCommandParserTests.cs" />
+    <Compile Include="Model\FlagGroupUserTests.cs" />
+    <Compile Include="TestData\CommandParserRedirectionDataSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\CommandParserTests.cs" />
     <Compile Include="Services\JoinMessageServiceTests.cs" />
     <Compile Include="Services\KeywordServiceTests.cs" />
     <Compile Include="Services\MessageServiceTests.cs" />
+    <Compile Include="Services\WikiLinkServiceTests.cs" />
     <Compile Include="TestBase.cs" />
+    <Compile Include="TestData\FlagGroupParseFlagsDataSource.cs" />
+    <Compile Include="TestData\FlagGroupUserWildcardDataSource.cs" />
+    <Compile Include="TestData\TestDataSourceBase.cs" />
+    <Compile Include="TestData\UserFlagServiceDataSource.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Helpmebot\Helpmebot.csproj">
@@ -88,6 +104,7 @@
       <Name>Helpmebot</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

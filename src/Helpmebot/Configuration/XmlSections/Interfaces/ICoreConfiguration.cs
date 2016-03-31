@@ -13,8 +13,10 @@
 //   You should have received a copy of the GNU General Public License
 //   along with Helpmebot.  If not, see http://www.gnu.org/licenses/ .
 // </copyright>
+// <summary>
+//   The CoreConfiguration interface.
+// </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace Helpmebot.Configuration.XmlSections.Interfaces
 {
     using System.Configuration;
@@ -27,28 +29,43 @@ namespace Helpmebot.Configuration.XmlSections.Interfaces
         #region Public Properties
 
         /// <summary>
-        ///     Gets the debug channel.
+        /// Gets the default command trigger
+        /// </summary>
+        [ConfigurationProperty("commandTrigger", DefaultValue = "!")]
+        string CommandTrigger { get; }
+
+        /// <summary>
+        /// Gets the debug channel.
         /// </summary>
         [ConfigurationProperty("debugChannel", IsRequired = true, DefaultValue = "##helpmebot")]
         string DebugChannel { get; }
 
         /// <summary>
-        ///     Gets the http timeout.
+        /// Gets the default interwiki prefix
+        /// </summary>
+        [ConfigurationProperty("defaultInterwikiPrefix", DefaultValue = "w")]
+        string DefaultInterwikiPrefix { get; }
+
+        /// <summary>
+        /// Gets the http timeout.
         /// </summary>
         [ConfigurationProperty("httpTimeout", IsRequired = true, DefaultValue = 5000)]
         int HttpTimeout { get; }
 
         /// <summary>
-        ///     Gets the user agent.
+        /// Gets the user agent.
         /// </summary>
-        [ConfigurationProperty("useragent", IsRequired = true, DefaultValue = "Helpmebot/6.0 (+http://helpmebot.org.uk)")]
+        [ConfigurationProperty(
+            "useragent", 
+            IsRequired = true, 
+            DefaultValue = "Helpmebot/6.0 (+https://helpmebot.org.uk)")]
         string UserAgent { get; }
 
         /// <summary>
-        ///     Gets the default command trigger
+        /// Gets the user agent.
         /// </summary>
-        [ConfigurationProperty("commandTrigger", DefaultValue = "!")]
-        string CommandTrigger { get; }
+        [ConfigurationProperty("defaultMWSiteName", DefaultValue = "en.wikipedia.org")]
+        string DefaultMediaWikiSiteName { get; }
 
         #endregion
     }

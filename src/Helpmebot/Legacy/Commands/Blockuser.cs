@@ -17,18 +17,23 @@
 //   Retrieves a link to block a user.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace helpmebot6.Commands
 {
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
+    using Helpmebot.Services.Interfaces;
+
+    using Microsoft.Practices.ServiceLocation;
 
     /// <summary>
     /// Retrieves a link to block a user.
     /// </summary>
-    internal class Blockuser : GenericCommand
+    [CommandInvocation("blockuser")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Blockuser : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Blockuser"/> class.
@@ -45,7 +50,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Blockuser(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Blockuser(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -57,16 +62,6 @@ namespace helpmebot6.Commands
         protected override CommandResponseHandler ExecuteCommand()
         {
             string[] args = this.Arguments;
-
-            bool secure = bool.Parse(LegacyConfig.Singleton()["useSecureWikiServer", this.Channel]);
-            if (args.Length > 0)
-            {
-                if (args[0] == "@secure")
-                {
-                    secure = true;
-                    GlobalFunctions.PopFromFront(ref args);
-                }
-            }
 
             string name = string.Join(" ", args);
 
@@ -82,7 +77,10 @@ namespace helpmebot6.Commands
                 name = parts[1];
                 prefix = parts[0];
 
-                if (this.CommandServiceHelper.InterwikiPrefixRepository.GetByPrefix(prefix) == null)
+                var interwikiPrefix =
+                    this.DatabaseSession.QueryOver<InterwikiPrefix>().Where(x => x.Prefix == parts[0]).SingleOrDefault();
+
+                if (interwikiPrefix == null)
                 {
                     name = origname;
                     prefix = string.Empty;
@@ -93,7 +91,10 @@ namespace helpmebot6.Commands
                 }
             }
 
-            string url = Linker.GetRealLink(this.Channel, prefix + page + name, secure).Replace("\0", string.Empty);
+            // FIXME: servicelocator wls
+            var linkService = ServiceLocator.Current.GetInstance<IWikiLinkService>();
+
+            string url = linkService.GetLink(prefix + page + name).ToString();
 
             return new CommandResponseHandler(url);
         }

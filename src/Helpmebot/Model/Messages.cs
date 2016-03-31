@@ -69,5 +69,10 @@ namespace Helpmebot.Model
         /// The requested by.
         /// </summary>
         public const string RequestedBy = "RequestedBy";
+
+        /// <summary>
+        /// The no help available.
+        /// </summary>
+        public const string NoHelpAvailable = "NoHelpAvailable";
     }
 }

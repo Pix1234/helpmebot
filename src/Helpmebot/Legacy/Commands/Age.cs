@@ -19,15 +19,18 @@ namespace helpmebot6.Commands
     using System;
     using System.Globalization;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
     using Helpmebot.Services.Interfaces;
 
     /// <summary>
     ///     Returns the age of a wikipedian
     /// </summary>
-    internal class Age : GenericCommand
+    [CommandInvocation("age")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Age : GenericCommand
     {
         #region Constructors and Destructors
 
@@ -46,7 +49,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Age(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Age(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

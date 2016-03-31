@@ -20,14 +20,17 @@
 
 namespace helpmebot6.Commands
 {
+    using Helpmebot.Attributes;
     using Helpmebot.Commands.FunStuff;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// The tea.
     /// </summary>
-    internal class Tea : TargetedFunCommand
+    [CommandInvocation("tea")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Tea : TargetedFunCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Tea"/> class.
@@ -44,7 +47,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Tea(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Tea(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

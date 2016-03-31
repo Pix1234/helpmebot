@@ -23,18 +23,19 @@ namespace helpmebot6.Commands
     using System.Globalization;
     using System.Net;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
-
-    using NHibernate.Param;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Discovers the location of an IP address
     /// </summary>
-    internal class Geolocate : GenericCommand
+    [CommandInvocation("geolocate")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Geolocate : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Geolocate"/> class.
@@ -51,7 +52,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Geolocate(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Geolocate(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

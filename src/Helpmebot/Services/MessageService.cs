@@ -20,7 +20,6 @@ namespace Helpmebot.Services
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
-    using System.Text;
 
     using Castle.Core.Logging;
 
@@ -28,6 +27,8 @@ namespace Helpmebot.Services
     using Helpmebot.Model;
     using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Services.Interfaces;
+
+    using MessageCache = Helpmebot.Model.CachedItem<System.Collections.Generic.IEnumerable<string>>;
 
     /// <summary>
     ///     The message service.
@@ -49,7 +50,12 @@ namespace Helpmebot.Services
         /// <summary>
         /// The response repository.
         /// </summary>
-        private readonly IResponseRepository responseRepository;
+        private readonly IResponseMessageRepository responseRepository;
+
+        /// <summary>
+        /// The response cache.
+        /// </summary>
+        private readonly Dictionary<string, CachedItem<IEnumerable<string>>> responseCache;
 
         #endregion
 
@@ -61,10 +67,11 @@ namespace Helpmebot.Services
         /// <param name="responseRepository">
         /// The response Repository.
         /// </param>
-        public MessageService(IResponseRepository responseRepository)
+        public MessageService(IResponseMessageRepository responseRepository)
         {
             this.responseRepository = responseRepository;
             this.random = new Random();
+            this.responseCache = new Dictionary<string, CachedItem<IEnumerable<string>>>();
         }
 
         #endregion
@@ -166,6 +173,17 @@ namespace Helpmebot.Services
             return this.RetrieveMessage(messageKey, string.Empty, arguments);
         }
 
+        /// <summary>
+        /// The purge cache.
+        /// </summary>
+        public void PurgeCache()
+        {
+            lock (this.responseCache)
+            {
+                this.responseCache.Clear();
+            }
+        }
+
         #endregion
 
         #region Methods
@@ -218,14 +236,45 @@ namespace Helpmebot.Services
         /// </returns>
         private IEnumerable<string> GetRawMessageFromDatabase(string messageKey)
         {
-            Response response = this.responseRepository.GetByName(messageKey);
+            if (messageKey == null)
+            {
+                throw new ArgumentNullException("messageKey");
+            }
+
+            lock (this.responseCache)
+            {
+                MessageCache data;
+                if (this.responseCache.TryGetValue(messageKey, out data))
+                {
+                    if (!data.IsExpired)
+                    {
+                        return data.Item;
+                    }
+                    
+                    // purge from cache
+                    this.responseCache.Remove(messageKey);
+                }
+            }
+
+            var response = this.responseRepository.GetByName(messageKey);
             if (response != null)
             {
                 // extract the byte array from the dataset
-                string text = Encoding.UTF8.GetString(response.Text);
-                return text.Split('\n').ToList();
+                var rawMessageFromDatabase = response.Text.Split('\n').ToList();
+
+                lock (this.responseCache)
+                {
+                    if (!this.responseCache.ContainsKey(messageKey))
+                    {
+                        var expiry = TimeSpan.FromHours(12);
+                        this.responseCache.Add(messageKey, new MessageCache(rawMessageFromDatabase, expiry));
+                    }
+                }
+
+                return rawMessageFromDatabase;
             }
 
+            // Let's not negatively cache data
             return new List<string>();
         }
 

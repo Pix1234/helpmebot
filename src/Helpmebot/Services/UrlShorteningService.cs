@@ -16,7 +16,6 @@
 // --------------------------------------------------------------------------------------------------------------------
 namespace Helpmebot.Services
 {
-    using System;
     using System.IO;
     using System.Net;
     using System.Web;
@@ -24,7 +23,6 @@ namespace Helpmebot.Services
     using Castle.Core.Logging;
 
     using Helpmebot.Configuration;
-    using Helpmebot.Model;
     using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Services.Interfaces;
 

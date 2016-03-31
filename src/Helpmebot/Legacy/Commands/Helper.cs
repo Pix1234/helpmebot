@@ -16,6 +16,8 @@
 // --------------------------------------------------------------------------------------------------------------------
 namespace helpmebot6.Commands
 {
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -24,14 +26,16 @@ namespace helpmebot6.Commands
 
     using Helpmebot;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     using RateLimitCacheEntry = NHibernate.Linq.Tuple<System.DateTime, int>;
 
     /// <summary>
     ///     Triggers an inter-channel alert
     /// </summary>
-    internal class Helper : GenericCommand
+    [CommandInvocation("helper")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Helper : GenericCommand
     {
         /// <summary>
         /// The rate limit max.
@@ -72,7 +76,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Helper(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Helper(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

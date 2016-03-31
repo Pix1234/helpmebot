@@ -40,11 +40,6 @@ namespace Helpmebot.Commands.Interfaces
         IConfigurationHelper ConfigurationHelper { get; }
 
         /// <summary>
-        ///     Gets the media wiki site repository.
-        /// </summary>
-        IMediaWikiSiteRepository MediaWikiSiteRepository { get; }
-
-        /// <summary>
         ///     Gets the message service.
         /// </summary>
         IMessageService MessageService { get; }
@@ -55,9 +50,14 @@ namespace Helpmebot.Commands.Interfaces
         IUrlShorteningService UrlShorteningService { get; }
 
         /// <summary>
-        /// Gets the inter-wiki prefix repository.
+        /// Gets the access log service.
         /// </summary>
-        IInterwikiPrefixRepository InterwikiPrefixRepository { get; }
+        IAccessLogService AccessLogService { get; }
+
+        /// <summary>
+        /// Gets the user flag service.
+        /// </summary>
+        IUserFlagService UserFlagService { get; }
 
         /// <summary>
         /// Gets the channel repository.

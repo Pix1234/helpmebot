@@ -25,15 +25,18 @@ namespace helpmebot6.Commands
     using System.Net.Sockets;
     using System.Text.RegularExpressions;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Decodes a hex-encoded IP address
     /// </summary>
-    internal class Decode : GenericCommand
+    [CommandInvocation("decode")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Decode : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Decode"/> class.
@@ -50,7 +53,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Decode(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Decode(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

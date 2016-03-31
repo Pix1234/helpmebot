@@ -36,13 +36,14 @@ namespace Helpmebot.Persistence.Mappings
         {
             this.Table("flaggroup_user");
 
-            this.Id(x => x.Id, "id");
+            this.Id(x => x.Id, "id").GeneratedBy.GuidComb();
             this.Map(x => x.Nickname, "nickname");
             this.Map(x => x.Username, "username");
             this.Map(x => x.Hostname, "hostname");
             this.Map(x => x.Account, "account");
+            this.Map(x => x.Protected, "protected");
 
-            this.References(x => x.FlagGroup);
+            this.References(x => x.FlagGroup, "flaggroup_id");
         }
     }
 }

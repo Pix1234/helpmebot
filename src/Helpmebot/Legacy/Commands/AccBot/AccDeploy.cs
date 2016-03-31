@@ -17,7 +17,6 @@
 //   Defines the Accdeploy type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace helpmebot6.Commands
 {
     using System;
@@ -25,10 +24,12 @@ namespace helpmebot6.Commands
     using System.IO;
     using System.Web;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
     using Helpmebot.Legacy.Configuration;
+    using Helpmebot.Model.Interfaces;
     using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
 
@@ -37,7 +38,9 @@ namespace helpmebot6.Commands
     /// <summary>
     /// The deploy ACC command.
     /// </summary>
-    internal class Accdeploy : GenericCommand
+    [CommandInvocation("accdeploy")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Accdeploy : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Accdeploy"/> class.
@@ -54,7 +57,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Accdeploy(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Accdeploy(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -82,13 +85,12 @@ namespace helpmebot6.Commands
                 this.CommandServiceHelper.Client.SendNotice(
                     this.Source.Nickname,
                     messageService.RetrieveMessage(Messages.NotEnoughParameters, this.Channel, messageParameters));
-
                 return null;
             }
 
             revision = string.Join(" ", args);
 
-            string apiDeployPassword = LegacyConfig.Singleton()["accDeployPassword"];
+            string apiDeployPassword = CommandServiceHelper.ConfigurationHelper.PrivateConfiguration.AccDeployPassword;
 
             string key = this.EncodeMD5(this.EncodeMD5(revision) + apiDeployPassword);
 

@@ -23,7 +23,7 @@ using System.Resources;
 
 [assembly: AssemblyCompany("Simon Walker")]
 [assembly: AssemblyProduct("Helpmebot")]
-[assembly: AssemblyCopyright("Copyright Simon Walker (c) 2009-2014 Some Rights Reserved")]
+[assembly: AssemblyCopyright("Copyright Simon Walker (c) 2009-2015 Some Rights Reserved")]
 [assembly: AssemblyTrademark("")]
-[assembly: AssemblyVersion("6.4.*")]
+[assembly: AssemblyVersion("7.0.*")]
 [assembly: NeutralResourcesLanguage("en-GB")]

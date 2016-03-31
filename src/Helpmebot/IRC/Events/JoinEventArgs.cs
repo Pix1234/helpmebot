@@ -20,6 +20,7 @@
 
 namespace Helpmebot.IRC.Events
 {
+    using Helpmebot.IRC.Interfaces;
     using Helpmebot.IRC.Messages;
     using Helpmebot.Model.Interfaces;
 
@@ -45,8 +46,8 @@ namespace Helpmebot.IRC.Events
         /// <param name="channel">
         ///     The channel.
         /// </param>
-        public JoinEventArgs(IMessage message, IUser user, string channel)
-            : base(message, user)
+        public JoinEventArgs(IMessage message, IUser user, string channel, IIrcClient client)
+            : base(message, user, client)
         {
             this.channel = channel;
         }

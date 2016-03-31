@@ -17,7 +17,6 @@
 //   Defines the JoinMessageService type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace Helpmebot.Services
 {
     using System;
@@ -27,9 +26,8 @@ namespace Helpmebot.Services
 
     using Castle.Core.Logging;
 
-    using Helpmebot.IRC.Interfaces;
+    using Helpmebot.IRC.Events;
     using Helpmebot.Model;
-    using Helpmebot.Model.Interfaces;
     using Helpmebot.Services.Interfaces;
 
     using NHibernate;
@@ -44,6 +42,7 @@ namespace Helpmebot.Services
     /// </summary>
     public class JoinMessageService : IJoinMessageService
     {
+        #region Fields
         /// <summary>
         /// The rate limit max.
         /// </summary>
@@ -85,12 +84,13 @@ namespace Helpmebot.Services
         /// </summary>
         private readonly ISession session;
 
+        #endregion
+
+        #region Constructors and Destructors
+
         /// <summary>
         /// Initialises a new instance of the <see cref="JoinMessageService"/> class.
         /// </summary>
-        /// <param name="ircClient">
-        /// The IRC network.
-        /// </param>
         /// <param name="logger">
         /// The logger.
         /// </param>
@@ -100,24 +100,59 @@ namespace Helpmebot.Services
         /// <param name="session">
         /// The session.
         /// </param>
-        public JoinMessageService(IIrcClient ircClient, ILogger logger, IMessageService messageService, ISession session)
+        public JoinMessageService(ILogger logger, IMessageService messageService, ISession session)
         {
-            this.ircClient = ircClient;
             this.logger = logger;
             this.messageService = messageService;
             this.session = session;
         }
 
+        #endregion
+
+        #region Public Methods and Operators
+
         /// <summary>
-        /// The welcome.
+        /// The get exceptions.
         /// </summary>
-        /// <param name="networkUser">
-        /// The network User.
-        /// </param>
         /// <param name="channel">
         /// The channel.
         /// </param>
-        public void Welcome(IUser networkUser, string channel)
+        /// <returns>
+        /// The <see cref="IList{WelcomeUser}"/>.
+        /// </returns>
+        public virtual IList<WelcomeUser> GetExceptions(string channel)
+        {
+            var exceptions =
+                this.session.QueryOver<WelcomeUser>().Where(x => x.Channel == channel && x.Exception).List();
+            return exceptions;
+        }
+
+        /// <summary>
+        /// The get welcome users.
+        /// </summary>
+        /// <param name="channel">
+        /// The channel.
+        /// </param>
+        /// <returns>
+        /// The <see cref="IList{WelcomeUser}"/>.
+        /// </returns>
+        public virtual IList<WelcomeUser> GetWelcomeUsers(string channel)
+        {
+            var users =
+                this.session.QueryOver<WelcomeUser>().Where(x => x.Channel == channel && x.Exception == false).List();
+            return users;
+        }
+
+        /// <summary>
+        /// The welcome newbie on join event.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// The e.
+        /// </param>
+        public void WelcomeNewbieOnJoinEvent(object sender, JoinEventArgs e)
         {
             // Rate limit this per hostname/channel
             if (this.RateLimit(networkUser.Hostname, channel))
@@ -125,73 +160,80 @@ namespace Helpmebot.Services
                 return;
             }
 
-            // status
-            bool match = false;
-
-            this.logger.DebugFormat("Searching for welcome matches for {0} in {1}...", networkUser, channel);
-
-            var users = this.GetWelcomeUsers(channel);
-
-            if (users.Any())
+            try
             {
-                foreach (var welcomeUser in users)
-                {
-                    Match nick = new Regex(welcomeUser.Nick).Match(networkUser.Nickname);
-                    Match user = new Regex(welcomeUser.User).Match(networkUser.Username);
-                    Match host = new Regex(welcomeUser.Host).Match(networkUser.Hostname);
+                // status
+                bool match = false;
 
-                    if (nick.Success && user.Success && host.Success)
+                this.logger.DebugFormat("Searching for welcome matches for {0} in {1}...", e.User, e.Channel);
+
+                var users = this.GetWelcomeUsers(e.Channel);
+
+                if (users.Any())
+                {
+                    foreach (var welcomeUser in users)
                     {
-                        this.logger.DebugFormat(
-                            "Found a match for {0} in {1} with {2}",
-                            networkUser,
-                            channel,
-                            welcomeUser);
-                        match = true;
-                        break;
+                        Match nick = new Regex(welcomeUser.Nick).Match(e.User.Nickname);
+                        Match user = new Regex(welcomeUser.User).Match(e.User.Username);
+                        Match host = new Regex(welcomeUser.Host).Match(e.User.Hostname);
+
+                        if (nick.Success && user.Success && host.Success)
+                        {
+                            this.logger.DebugFormat(
+                                "Found a match for {0} in {1} with {2}", 
+                                e.User, 
+                                e.Channel, 
+                                welcomeUser);
+                            match = true;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (!match)
-            {
-                this.logger.InfoFormat("No welcome matches found for {0} in {1}.", networkUser, channel);
-                return;
-            }
-
-            this.logger.DebugFormat("Searching for exception matches for {0} in {1}...", networkUser, channel);
-
-            var exceptions = this.GetExceptions(channel);
-
-            if (exceptions.Any())
-            {
-                foreach (var welcomeUser in exceptions)
+                if (!match)
                 {
-                    Match nick = new Regex(welcomeUser.Nick).Match(networkUser.Nickname);
-                    Match user = new Regex(welcomeUser.User).Match(networkUser.Username);
-                    Match host = new Regex(welcomeUser.Host).Match(networkUser.Hostname);
+                    this.logger.InfoFormat("No welcome matches found for {0} in {1}.", e.User, e.Channel);
+                    return;
+                }
 
-                    if (nick.Success && user.Success && host.Success)
+                this.logger.DebugFormat("Searching for exception matches for {0} in {1}...", e.User, e.Channel);
+
+                var exceptions = this.GetExceptions(e.Channel);
+
+                if (exceptions.Any())
+                {
+                    foreach (var welcomeUser in exceptions)
                     {
-                        this.logger.DebugFormat(
-                            "Found an exception match for {0} in {1} with {2}",
-                            networkUser,
-                            channel,
-                            welcomeUser);
+                        Match nick = new Regex(welcomeUser.Nick).Match(e.User.Nickname);
+                        Match user = new Regex(welcomeUser.User).Match(e.User.Username);
+                        Match host = new Regex(welcomeUser.Host).Match(e.User.Hostname);
 
-                        return;
+                        if (nick.Success && user.Success && host.Success)
+                        {
+                            this.logger.DebugFormat(
+                                "Found an exception match for {0} in {1} with {2}", 
+                                e.User, 
+                                e.Channel, 
+                                welcomeUser);
+
+                            return;
+                        }
                     }
                 }
+
+                this.logger.InfoFormat("Welcoming {0} into {1}...", e.User, e.Channel);
+
+                var welcomeMessage = this.messageService.RetrieveMessage(
+                    "WelcomeMessage", 
+                    e.Channel, 
+                    new[] { e.User.Nickname, e.Channel });
+
+                e.Client.SendMessage(e.Channel, welcomeMessage);
             }
-
-            this.logger.InfoFormat("Welcoming {0} into {1}...", networkUser, channel);
-
-            var welcomeMessage = this.messageService.RetrieveMessage(
-                "WelcomeMessage",
-                channel,
-                new[] { networkUser.Nickname, channel });
-
-            this.ircClient.SendMessage(channel, welcomeMessage);
+            catch (Exception exception)
+            {
+                this.logger.Error("Exception encountered in WelcomeNewbieOnJoinEvent", exception);
+            }
         }
 
         /// <summary>
@@ -329,5 +371,6 @@ namespace Helpmebot.Services
 
             return false;
         }
+        #endregion
     }
 }

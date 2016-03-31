@@ -74,5 +74,10 @@ namespace Helpmebot.Services.Interfaces
         /// The <see cref="string"/>.
         /// </returns>
         string Done(object context);
+
+        /// <summary>
+        /// The purge cache.
+        /// </summary>
+        void PurgeCache();
     }
 }

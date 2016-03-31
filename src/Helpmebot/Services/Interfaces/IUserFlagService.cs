@@ -17,7 +17,6 @@
 //   Defines the IUserFlagService type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace Helpmebot.Services.Interfaces
 {
     using System.Collections.Generic;
@@ -25,11 +24,24 @@ namespace Helpmebot.Services.Interfaces
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
 
+    using NHibernate;
+
     /// <summary>
     /// The UserFlagService interface.
     /// </summary>
     public interface IUserFlagService
     {
+        #region Public Properties
+
+        /// <summary>
+        /// Gets or sets the database session.
+        /// </summary>
+        ISession DatabaseSession { get; set; }
+
+        #endregion
+
+        #region Public Methods and Operators
+
         /// <summary>
         /// The get flags for user.
         /// </summary>
@@ -41,15 +53,22 @@ namespace Helpmebot.Services.Interfaces
         /// </returns>
         IEnumerable<string> GetFlagsForUser(IUser user);
 
+        #endregion
+
         /// <summary>
-        /// The get flag group.
+        /// The invalidate cache.
         /// </summary>
-        /// <param name="name">
-        /// The name.
+        void InvalidateCache();
+
+        /// <summary>
+        /// The get flags for channel.
+        /// </summary>
+        /// <param name="channel">
+        /// The channel name.
         /// </param>
         /// <returns>
-        /// The <see cref="FlagGroup"/>.
+        /// The <see cref="IEnumerable{String}"/>.
         /// </returns>
-        FlagGroup GetFlagGroup(string name);
+        IEnumerable<string> GetFlagsForChannel(Channel channel);
     }
 }

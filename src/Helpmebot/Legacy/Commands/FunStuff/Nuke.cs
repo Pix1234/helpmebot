@@ -20,14 +20,17 @@
 
 namespace helpmebot6.Commands
 {
+    using Helpmebot.Attributes;
     using Helpmebot.Commands.FunStuff;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// The nuke.
     /// </summary>
-    internal class Nuke : ProtectedTargetedFunCommand
+    [CommandInvocation("nuke")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Nuke : ProtectedTargetedFunCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Nuke"/> class.
@@ -44,7 +47,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Nuke(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Nuke(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

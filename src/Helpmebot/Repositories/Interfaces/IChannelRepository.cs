@@ -20,32 +20,15 @@
 
 namespace Helpmebot.Repositories.Interfaces
 {
-    using System.Collections.Generic;
-
     using Helpmebot.Model;
+
+    using NHibernate;
 
     /// <summary>
     /// The ChannelRepository interface.
     /// </summary>
-    public interface IChannelRepository : IRepository<Channel>
+    public interface IChannelRepository : IBasicRepository<Channel>
     {
-        /// <summary>
-        /// The get by name.
-        /// </summary>
-        /// <param name="name">
-        /// The name.
-        /// </param>
-        /// <returns>
-        /// The <see cref="Channel"/>.
-        /// </returns>
-        Channel GetByName(string name);
-
-        /// <summary>
-        /// The get by name.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Channel"/>.
-        /// </returns>
-        IEnumerable<Channel> GetEnabled();
+        Channel GetByName(string name, ISession session);
     }
 }

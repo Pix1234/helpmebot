@@ -17,7 +17,6 @@
 namespace Helpmebot.Tests.Services
 {
     using System;
-    using System.Text;
 
     using Helpmebot.Model;
     using Helpmebot.Repositories.Interfaces;
@@ -43,7 +42,7 @@ namespace Helpmebot.Tests.Services
         /// <summary>
         /// The response repository mock.
         /// </summary>
-        private Mock<IResponseRepository> responseRepositoryMock;
+        private Mock<IResponseMessageRepository> responseRepositoryMock;
 
         #endregion
 
@@ -57,9 +56,9 @@ namespace Helpmebot.Tests.Services
         {
             const string Value = "test {0} {1}";
 
-            this.responseRepositoryMock = new Mock<IResponseRepository>();
+            this.responseRepositoryMock = new Mock<IResponseMessageRepository>();
             this.responseRepositoryMock.Setup(x => x.GetByName(It.IsAny<string>()))
-                .Returns(new Response { Text = Encoding.UTF8.GetBytes(Value) });
+                .Returns(new ResponseMessage { Text = Value });
 
             this.messageService = new MessageService(this.responseRepositoryMock.Object);
         }

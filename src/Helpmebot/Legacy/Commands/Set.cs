@@ -16,15 +16,21 @@
 // --------------------------------------------------------------------------------------------------------------------
 namespace helpmebot6.Commands
 {
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
+    using Helpmebot.Exceptions;
     using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
+
+    using Remotion.Linq.Parsing;
 
     /// <summary>
     ///     Sets a global config option.
     /// </summary>
-    internal class Set : GenericCommand
+    [CommandInvocation("set")]
+    [CommandFlag(Helpmebot.Model.Flag.Debug)]
+    public class Set : GenericCommand
     {
         #region Constructors and Destructors
 
@@ -43,7 +49,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Set(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Set(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -58,16 +64,8 @@ namespace helpmebot6.Commands
         /// <returns>the response</returns>
         protected override CommandResponseHandler ExecuteCommand()
         {
-            if (this.Arguments[0] == "global")
-            {
-                LegacyConfig.Singleton()[this.Arguments[1]] = this.Arguments[2];
-            }
-            else
-            {
-                LegacyConfig.Singleton()[this.Arguments[1], this.Arguments[0]] = this.Arguments[2];
-            }
-
-            return null;
+            // TODO: decide what to do with this command.
+            return new CommandResponseHandler("Command disabled");
         }
 
         #endregion

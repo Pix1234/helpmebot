@@ -13,74 +13,38 @@
 //   You should have received a copy of the GNU General Public License
 //   along with Helpmebot.  If not, see http://www.gnu.org/licenses/ .
 // </copyright>
+// <summary>
+//   The channel repository.
+// </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace Helpmebot.Repositories
 {
-    using System.Collections.Generic;
-    using System.Linq;
-
-    using Castle.Core.Logging;
-
     using Helpmebot.Model;
     using Helpmebot.Repositories.Interfaces;
 
     using NHibernate;
-    using NHibernate.Criterion;
 
     /// <summary>
     /// The channel repository.
     /// </summary>
-    public class ChannelRepository : RepositoryBase<Channel>, IChannelRepository
+    public class ChannelRepository : IChannelRepository
     {
-        /// <summary>
-        /// Initialises a new instance of the <see cref="ChannelRepository"/> class.
-        /// </summary>
-        /// <param name="session">
-        /// The session.
-        /// </param>
-        /// <param name="logger">
-        /// The logger.
-        /// </param>
-        public ChannelRepository(ISession session, ILogger logger)
-            : base(session, logger)
-        {
-        }
-
         /// <summary>
         /// The get by name.
         /// </summary>
         /// <param name="name">
         /// The name.
         /// </param>
+        /// <param name="session">
+        /// The session.
+        /// </param>
         /// <returns>
         /// The <see cref="Channel"/>.
         /// </returns>
-        public Channel GetByName(string name)
+        public Channel GetByName(string name, ISession session)
         {
-            return this.Get(Restrictions.Eq("Name", name)).FirstOrDefault();
-        }
-
-        /// <summary>
-        /// The get enabled.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="IEnumerable{Channel}"/>.
-        /// </returns>
-        public IEnumerable<Channel> GetEnabled()
-        {
-            return this.Get(Restrictions.Eq("Enabled", true));
-        }
-
-        /// <summary>
-        /// The dispose.
-        /// </summary>
-        /// <param name="disposing">
-        /// The disposing.
-        /// </param>
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(true);
+            return session.QueryOver<Channel>().Where(x => x.Name == name).SingleOrDefault();
         }
     }
 }

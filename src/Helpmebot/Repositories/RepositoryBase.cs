@@ -281,9 +281,20 @@ namespace Helpmebot.Repositories
             {
                 lock (this.sessionLock)
                 {
-                    this.session.Flush();
-                    this.session.Close();
-                    this.session.Dispose();
+                    try
+                    {
+                        if (!this.session.IsOpen)
+                        {
+                            this.session.Flush();
+                            this.session.Close();
+                        }
+
+                        this.session.Dispose();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // nope, already done.
+                    }
                 }
             }
         }

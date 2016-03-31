@@ -356,7 +356,7 @@ namespace Helpmebot.IRC
                 if (item == null)
                 {
                     // Wait here for an item to be added to the queue
-                    this.writerThreadResetEvent.WaitOne();
+                    this.writerThreadResetEvent.WaitOne(3000);
                 }
                 else
                 {

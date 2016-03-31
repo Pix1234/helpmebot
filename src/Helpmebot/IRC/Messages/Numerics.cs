@@ -40,30 +40,6 @@ namespace Helpmebot.IRC.Messages
         /// </summary>
         public const string Welcome = "001";
 
-        #region SASL
-
-        /// <summary>
-        /// The SASL authentication failed.
-        /// </summary>
-        public const string SaslAuthFailed = "904";
-
-        /// <summary>
-        /// The SASL logged in.
-        /// </summary>
-        public const string SaslLoggedIn = "900";
-
-        /// <summary>
-        /// The SASL authentication succeeded.
-        /// </summary>
-        public const string SaslSuccess = "903";
-
-        /// <summary>
-        /// The SASL authentication was aborted.
-        /// </summary>
-        public const string SaslAborted = "906";
-
-        #endregion
-
         /// <summary>
         /// The no channel topic.
         /// </summary>
@@ -93,5 +69,59 @@ namespace Helpmebot.IRC.Messages
         /// The who x reply.
         /// </summary>
         public const string WhoXReply = "354";
+
+        /// <summary>
+        /// The forwarding to other channel.
+        /// </summary>
+        public const string ForwardingToOtherChannel = "470";
+
+        /// <summary>
+        /// The channel full.
+        /// </summary>
+        public const string ChannelFull = "471";
+
+        /// <summary>
+        /// The invite only channel.
+        /// </summary>
+        public const string InviteOnlyChannel = "473";
+
+        /// <summary>
+        /// The banned from channel.
+        /// </summary>
+        public const string BannedFromChannel = "474";
+
+        /// <summary>
+        /// The bad channel key.
+        /// </summary>
+        public const string BadChannelKey = "475";
+
+        /// <summary>
+        /// The channel throttle exceeded.
+        /// </summary>
+        public const string ChannelThrottleExceeded = "480";
+
+        #region SASL
+
+        /// <summary>
+        /// The SASL authentication failed.
+        /// </summary>
+        public const string SaslAuthFailed = "904";
+
+        /// <summary>
+        /// The SASL logged in.
+        /// </summary>
+        public const string SaslLoggedIn = "900";
+
+        /// <summary>
+        /// The SASL authentication succeeded.
+        /// </summary>
+        public const string SaslSuccess = "903";
+
+        /// <summary>
+        /// The SASL authentication was aborted.
+        /// </summary>
+        public const string SaslAborted = "906";
+
+        #endregion
     }
 }

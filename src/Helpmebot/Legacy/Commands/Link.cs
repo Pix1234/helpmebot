@@ -17,22 +17,26 @@
 //   Triggers the link parser
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace helpmebot6.Commands
 {
-    using System.Collections;
+    using System.Collections.Generic;
     using System.Linq;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Services.Interfaces;
+    using Helpmebot.Model.Interfaces;
+
+    using Microsoft.Practices.ServiceLocation;
 
     /// <summary>
     /// Triggers the link parser
     /// </summary>
-    internal class Link : GenericCommand
+    [CommandInvocation("link")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Link : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Link"/> class.
@@ -49,7 +53,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Link(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Link(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -60,33 +64,33 @@ namespace helpmebot6.Commands
         /// <returns>The result</returns>
         protected override CommandResponseHandler ExecuteCommand()
         {
-            bool secure = bool.Parse(LegacyConfig.Singleton()["useSecureWikiServer", this.Channel]);
+            // FIXME: servicelocator Wikilinkservice
+            var linkService = ServiceLocator.Current.GetInstance<IWikiLinkService>();
+
             string[] args = this.Arguments;
-            if (args.Length > 0)
-            {
-                if (args[0] == "@secure")
-                {
-                    secure = true;
-                    GlobalFunctions.PopFromFront(ref args);
-                }
-            }
 
             if (args.SmartLength() > 0)
             {
-                ArrayList links = Linker.Instance().ReallyParseMessage(string.Join(" ", args));
+                IEnumerable<string> links = linkService.ParseForLinks(string.Join(" ", args)).ToList();
 
-                if (links.Count == 0)
+                if (links.Any())
                 {
-                    links = Linker.Instance().ReallyParseMessage("[[" + string.Join(" ", args) + "]]");
+                    links = linkService.ParseForLinks("[[" + string.Join(" ", args) + "]]").ToList();
                 }
 
-                string message = links.Cast<string>()
-                    .Aggregate(string.Empty, (current, link) => current + " " + Linker.GetRealLink(this.Channel, link, secure));
+                string message = links.Aggregate(
+                    string.Empty,
+                    (current, link) => current + " " + linkService.GetLink(link));
 
                 return new CommandResponseHandler(message);
             }
 
-            return new CommandResponseHandler(Linker.Instance().GetLink(this.Channel, secure));
+            var lastForChannel = linkService.GetLastForChannel(this.Channel);
+
+            string cached = lastForChannel
+                .Aggregate(string.Empty, (current, link) => current + " " + linkService.GetLink(link));
+
+            return new CommandResponseHandler(cached);
         }
     }
 }

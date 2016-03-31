@@ -22,6 +22,7 @@ namespace Helpmebot.Tests.Services
 {
     using System.Collections.Generic;
 
+    using Helpmebot.IRC.Events;
     using Helpmebot.IRC.Interfaces;
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
@@ -90,7 +91,6 @@ namespace Helpmebot.Tests.Services
             this.ircNetwork = new Mock<IIrcClient>();
 
             this.joinMessageService = new Mock<JoinMessageService>(
-                this.ircNetwork.Object,
                 this.Logger.Object,
                 this.messageService.Object,
                 this.session.Object);
@@ -124,7 +124,9 @@ namespace Helpmebot.Tests.Services
             this.joinMessageService.Object.ClearRateLimitCache();
 
             // act
-            this.joinMessageService.Object.Welcome(networkUser.Object, "ab");
+            this.joinMessageService.Object.WelcomeNewbieOnJoinEvent(
+                this.ircNetwork.Object,
+                new JoinEventArgs(null, networkUser.Object, "ab", this.ircNetwork.Object));
 
             // assert
             this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Never());
@@ -147,7 +149,9 @@ namespace Helpmebot.Tests.Services
             this.joinMessageService.Object.ClearRateLimitCache();
 
             // act
-            this.joinMessageService.Object.Welcome(networkUser.Object, "ab");
+            this.joinMessageService.Object.WelcomeNewbieOnJoinEvent(
+                this.ircNetwork.Object,
+                new JoinEventArgs(null, networkUser.Object, "ab", this.ircNetwork.Object));
 
             // assert
             this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Never());
@@ -170,7 +174,9 @@ namespace Helpmebot.Tests.Services
             this.joinMessageService.Object.ClearRateLimitCache();
 
             // act
-            this.joinMessageService.Object.Welcome(networkUser.Object, "ab");
+            this.joinMessageService.Object.WelcomeNewbieOnJoinEvent(
+                this.ircNetwork.Object,
+                new JoinEventArgs(null, networkUser.Object, "ab", this.ircNetwork.Object));
 
             // assert
             this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Once());
@@ -198,7 +204,9 @@ namespace Helpmebot.Tests.Services
             this.joinMessageService.Object.ClearRateLimitCache();
 
             // act
-            this.joinMessageService.Object.Welcome(networkUser.Object, "cd");
+            this.joinMessageService.Object.WelcomeNewbieOnJoinEvent(
+                this.ircNetwork.Object,
+                new JoinEventArgs(null, networkUser.Object, "cd", this.ircNetwork.Object));
 
             // assert
             this.ircNetwork.Verify(x => x.SendMessage("cd", It.IsAny<string>()), Times.Never());

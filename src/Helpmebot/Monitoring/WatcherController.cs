@@ -25,6 +25,9 @@ namespace Helpmebot.Monitoring
 
     using Castle.Core.Logging;
 
+    using Helpmebot.Commands.CategoryWatcher;
+    using Helpmebot.Commands.CommandUtilities.Response;
+    using Helpmebot.Configuration.XmlSections.Interfaces;
     using Helpmebot.IRC.Interfaces;
     using Helpmebot.Legacy.Configuration;
     using Helpmebot.Legacy.Database;
@@ -35,6 +38,8 @@ namespace Helpmebot.Monitoring
     using Microsoft.Practices.ServiceLocation;
 
     using MySql.Data.MySqlClient;
+
+    using NHibernate;
 
     /// <summary>
     ///     Controls instances of CategoryWatchers for the bot
@@ -98,9 +103,6 @@ namespace Helpmebot.Monitoring
         /// <param name="watchedCategoryRepository">
         /// The watched Category Repository.
         /// </param>
-        /// <param name="mediaWikiSiteRepository">
-        /// The media Wiki Site Repository.
-        /// </param>
         /// <param name="ignoredPagesRepository">
         /// The ignored Pages Repository.
         /// </param>
@@ -113,15 +115,26 @@ namespace Helpmebot.Monitoring
         /// <param name="legacyDatabase">
         /// The legacy Database.
         /// </param>
+        /// <param name="commandParser">
+        /// The command Parser.
+        /// </param>
+        /// <param name="coreConfiguration">
+        /// The core Configuration.
+        /// </param>
+        /// <param name="databaseSession">
+        /// The database Session.
+        /// </param>
         protected WatcherController(
             IMessageService messageService, 
             IUrlShorteningService urlShorteningService, 
-            IWatchedCategoryRepository watchedCategoryRepository, 
-            IMediaWikiSiteRepository mediaWikiSiteRepository,
+            IWatchedCategoryRepository watchedCategoryRepository,
             IIgnoredPagesRepository ignoredPagesRepository,
             ILogger logger,
             IIrcClient ircClient,
-            ILegacyDatabase legacyDatabase)
+            ILegacyDatabase legacyDatabase,
+            ICommandParser commandParser,
+            ICoreConfiguration coreConfiguration,
+            ISession databaseSession)
         {
             this.messageService = messageService;
             this.urlShorteningService = urlShorteningService;
@@ -133,11 +146,14 @@ namespace Helpmebot.Monitoring
             {
                 var categoryWatcher = new CategoryWatcher(
                     item,
-                    mediaWikiSiteRepository,
                     ignoredPagesRepository,
+                    coreConfiguration,
+                    databaseSession,
                     logger.CreateChildLogger("CategoryWatcher[" + item.Keyword + "]"));
                 this.watchers.Add(item.Keyword, categoryWatcher);
                 categoryWatcher.CategoryHasItemsEvent += this.CategoryHasItemsEvent;
+
+                commandParser.RegisterCommand(item.Keyword, typeof(CategoryWatcherForceCommand));
             }
 
             this.legacyDatabase = legacyDatabase;
@@ -161,13 +177,27 @@ namespace Helpmebot.Monitoring
                 var ms = ServiceLocator.Current.GetInstance<IMessageService>();
                 var ss = ServiceLocator.Current.GetInstance<IUrlShorteningService>();
                 var wcrepo = ServiceLocator.Current.GetInstance<IWatchedCategoryRepository>();
-                var mwrepo = ServiceLocator.Current.GetInstance<IMediaWikiSiteRepository>();
                 var iprepo = ServiceLocator.Current.GetInstance<IIgnoredPagesRepository>();
                 var logger = ServiceLocator.Current.GetInstance<ILogger>();
                 var irc = ServiceLocator.Current.GetInstance<IIrcClient>();
                 var legacyDb = ServiceLocator.Current.GetInstance<ILegacyDatabase>();
+                var coreConfiguration = ServiceLocator.Current.GetInstance<ICoreConfiguration>();
+                var databaseSession = ServiceLocator.Current.GetInstance<ISession>();
+                legacyDb.Connect();
 
-                instance = new WatcherController(ms, ss, wcrepo, mwrepo, iprepo, logger, irc, legacyDb);
+                var parser = ServiceLocator.Current.GetInstance<ICommandParser>();
+
+                instance = new WatcherController(
+                    ms,
+                    ss,
+                    wcrepo,
+                    iprepo,
+                    logger,
+                    irc,
+                    legacyDb,
+                    parser,
+                    coreConfiguration,
+                    databaseSession);
             }
 
             return instance;
@@ -457,8 +487,17 @@ namespace Helpmebot.Monitoring
             {
                 var channel = (string)item[0];
 
+                // FIXME: servicelocator database
+                // FIXME: use repository
+                var db = ServiceLocator.Current.GetInstance<ISession>();
+                Channel channelObject = db.QueryOver<Channel>().Where(x => x.Name == channel).SingleOrDefault();
+                if (channelObject == null)
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
+                
                 string message = this.CompileMessage(items, e.Keyword, channel, false);
-                if (LegacyConfig.Singleton()["silence", channel] == "false")
+                if (!channelObject.IsSilenced)
                 {
                     this.ircClient.SendMessage(channel, message);
                 }
@@ -521,6 +560,8 @@ namespace Helpmebot.Monitoring
             if (items.Any())
             {
                 string listString = string.Empty;
+                var listSeparator = this.messageService.RetrieveMessage("listSeparator", destination, null);
+
                 foreach (string item in items)
                 {
                     // Display [[]]'ied name of the page which requests help
@@ -531,7 +572,8 @@ namespace Helpmebot.Monitoring
                     {
                         string urlName = item.Replace(' ', '_');
 
-                        string uriString = LegacyConfig.Singleton()["wikiUrl"] + HttpUtility.UrlEncode(urlName);
+                        // FIXME: configuration
+                        string uriString = "http://enwp.org/" + HttpUtility.UrlEncode(urlName);
                         listString += this.urlShorteningService.Shorten(uriString);
                     }
 
@@ -572,7 +614,7 @@ namespace Helpmebot.Monitoring
                     }
 
                     // trailing space added as a hack because MediaWiki doesn't preserve the trailing space :(
-                    listString += this.messageService.RetrieveMessage("listSeparator", destination, null) + " ";
+                    listString += listSeparator + " ";
                 }
 
                 listString = listString.TrimEnd(' ', ',');

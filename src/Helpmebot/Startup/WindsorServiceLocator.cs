@@ -30,7 +30,7 @@ namespace Helpmebot.Startup
     /// <summary>
     /// The windsor service locator.
     /// </summary>
-    internal class WindsorServiceLocator : ServiceLocatorImplBase
+    public class WindsorServiceLocator : ServiceLocatorImplBase
     {
         /// <summary>
         /// The container.

@@ -23,16 +23,19 @@ namespace helpmebot6.Commands
     using System.Globalization;
     using System.Linq;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Shortens a URL
     /// </summary>
-    internal class Isgd : GenericCommand
+    [CommandInvocation("isgd")]
+    [CommandFlag(Helpmebot.Model.Flag.Standard)]
+    public class Isgd : GenericCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Isgd"/> class.
@@ -49,7 +52,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Isgd(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Isgd(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

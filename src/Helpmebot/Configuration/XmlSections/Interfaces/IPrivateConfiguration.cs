@@ -74,6 +74,12 @@ namespace Helpmebot.Configuration.XmlSections.Interfaces
         [ConfigurationProperty("ipInfoDbApiKey", DefaultValue = "")]
         string IpInfoDbApiKey { get; }
 
+        /// <summary>
+        /// Gets the acc deploy password.
+        /// </summary>
+        [ConfigurationProperty("accDeployPassword", DefaultValue = "")]
+        string AccDeployPassword { get; }
+
         #endregion
     }
 }

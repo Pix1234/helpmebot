@@ -24,27 +24,22 @@ namespace helpmebot6.Commands
     using System.Data;
     using System.Linq;
 
-    using Helpmebot;
+    using Helpmebot.Attributes;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
-    using Microsoft.Practices.ServiceLocation;
-
-    using NHibernate;
     using NHibernate.Linq;
 
     /// <summary>
     /// Controls the newbie welcomer
     /// </summary>
-    internal class Welcomer : GenericCommand
+    [CommandInvocation("welcomer")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Welcomer : GenericCommand
     {
-        /// <summary>
-        /// The database session.
-        /// </summary>
-        private readonly ISession databaseSession;
-
         /// <summary>
         /// Initialises a new instance of the <see cref="Welcomer"/> class.
         /// </summary>
@@ -60,10 +55,9 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Welcomer(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Welcomer(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
-            this.databaseSession = ServiceLocator.Current.GetInstance<ISession>();
         }
 
         /// <summary>
@@ -83,7 +77,7 @@ namespace helpmebot6.Commands
             List<string> argumentsList = this.Arguments.ToList();
             var mode = argumentsList.PopFromFront();
 
-            this.databaseSession.BeginTransaction(IsolationLevel.RepeatableRead);
+            this.DatabaseSession.BeginTransaction(IsolationLevel.RepeatableRead);
 
             switch (mode.ToLower())
             {
@@ -122,7 +116,7 @@ namespace helpmebot6.Commands
         {
             try
             {
-                this.Log.Debug("Getting list of welcomeusers ready for deletion!");
+                this.Logger.Debug("Getting list of welcomeusers ready for deletion!");
 
                 var exception = false;
 
@@ -135,25 +129,25 @@ namespace helpmebot6.Commands
                 var implode = argumentsList.Implode();
 
                 var welcomeUsers =
-                    this.databaseSession.QueryOver<WelcomeUser>()
+                    this.DatabaseSession.QueryOver<WelcomeUser>()
                         .Where(x => x.Exception == exception && x.Host == implode && x.Channel == this.Channel)
                         .List();
 
-                this.Log.Debug("Got list of WelcomeUsers, proceeding to Delete...");
+                this.Logger.Debug("Got list of WelcomeUsers, proceeding to Delete...");
 
-                welcomeUsers.ForEach(this.databaseSession.Delete);
+                welcomeUsers.ForEach(this.DatabaseSession.Delete);
 
-                this.Log.Debug("All done, cleaning up and sending message to IRC");
+                this.Logger.Debug("All done, cleaning up and sending message to IRC");
 
                 response.Respond(this.CommandServiceHelper.MessageService.Done(this.Channel));
 
-                this.databaseSession.Transaction.Commit();
+                this.DatabaseSession.Transaction.Commit();
             }
             catch (Exception e)
             {
-                this.Log.Error("Error occurred during addition of welcome mask.", e);
+                this.Logger.Error("Error occurred during addition of welcome mask.", e);
                 response.Respond(e.Message);
-                this.databaseSession.Transaction.Rollback();
+                this.DatabaseSession.Transaction.Rollback();
             }
         }
 
@@ -187,18 +181,18 @@ namespace helpmebot6.Commands
                                           Exception = exception
                                       };
 
-                this.databaseSession.Save(welcomeUser);
+                this.DatabaseSession.Save(welcomeUser);
 
                 response.Respond(this.CommandServiceHelper.MessageService.Done(this.Channel));
 
-                this.databaseSession.Transaction.Commit();
+                this.DatabaseSession.Transaction.Commit();
             }
             catch (Exception e)
             {
-                this.Log.Error("Error occurred during addition of welcome mask.", e);
+                this.Logger.Error("Error occurred during addition of welcome mask.", e);
                 response.Respond(e.Message);
 
-                this.databaseSession.Transaction.Rollback();
+                this.DatabaseSession.Transaction.Rollback();
             }
         }
 
@@ -211,7 +205,7 @@ namespace helpmebot6.Commands
         private void ListMode(CommandResponseHandler response)
         {
             var welcomeForChannel =
-                this.databaseSession.QueryOver<WelcomeUser>().Where(x => x.Channel == this.Channel).List();
+                this.DatabaseSession.QueryOver<WelcomeUser>().Where(x => x.Channel == this.Channel).List();
             welcomeForChannel.ForEach(x => response.Respond(x.ToString()));
         }
     }

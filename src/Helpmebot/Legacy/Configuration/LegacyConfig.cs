@@ -16,7 +16,6 @@
 // --------------------------------------------------------------------------------------------------------------------
 namespace Helpmebot.Legacy.Configuration
 {
-    using System;
     using System.Collections.Generic;
 
     using Castle.Core.Logging;
@@ -64,6 +63,7 @@ namespace Helpmebot.Legacy.Configuration
         {
             // FIXME: ServiceLocator - Legacy database
             this.legacyDatabase = ServiceLocator.Current.GetInstance<ILegacyDatabase>();
+            this.legacyDatabase.Connect();
 
             this.configurationCache = new Dictionary<string, ConfigurationSetting>();
         }
@@ -80,30 +80,6 @@ namespace Helpmebot.Legacy.Configuration
         #endregion
 
         #region Public Indexers
-
-        /// <summary>
-        /// Gets or sets the <see cref="System.String"/> with the specified global option.
-        /// </summary>
-        /// <param name="globalOption">
-        /// The global Option.
-        /// </param>
-        /// <value>
-        /// </value>
-        /// <returns>
-        /// The <see cref="string"/>.
-        /// </returns>
-        public string this[string globalOption]
-        {
-            get
-            {
-                return this.GetGlobalSetting(globalOption);
-            }
-
-            set
-            {
-                this.SetGlobalOption(globalOption, value);
-            }
-        }
 
         /// <summary>
         /// Gets or sets the <see cref="System.String"/> with the specified local option.
@@ -180,57 +156,6 @@ namespace Helpmebot.Legacy.Configuration
         #region Methods
 
         /// <summary>
-        /// The get global setting.
-        /// </summary>
-        /// <param name="optionName">
-        /// The option name.
-        /// </param>
-        /// <returns>
-        /// The <see cref="string"/>.
-        /// </returns>
-        private string GetGlobalSetting(string optionName)
-        {
-            lock (this.configurationCache)
-            {
-                if (this.configurationCache.ContainsKey(optionName))
-                {
-                    ConfigurationSetting setting;
-                    if (!this.configurationCache.TryGetValue(optionName, out setting))
-                    {
-                        throw new ArgumentOutOfRangeException();
-                    }
-
-                    if (setting.IsValid())
-                    {
-                        return setting.Value;
-                    }
-
-                    // option cache is not valid
-                    // fetch new item from database
-                    string optionValue1 = this.RetrieveOptionFromDatabase(optionName);
-
-                    setting.Value = optionValue1;
-                    this.configurationCache.Remove(optionName);
-                    this.configurationCache.Add(optionName, setting);
-                    return setting.Value;
-                }
-            }
-
-            string optionValue2 = this.RetrieveOptionFromDatabase(optionName);
-
-            if (optionValue2 != string.Empty)
-            {
-                var cachedSetting = new ConfigurationSetting(optionName, optionValue2);
-                lock (this.configurationCache)
-                {
-                    this.configurationCache.Add(optionName, cachedSetting);
-                }
-            }
-
-            return optionValue2;
-        }
-
-        /// <summary>
         /// The get option id.
         /// </summary>
         /// <param name="optionName">
@@ -246,56 +171,6 @@ namespace Helpmebot.Legacy.Configuration
             command.Parameters.AddWithValue("@name", optionName);
 
             return this.legacyDatabase.ExecuteScalarSelect(command);
-        }
-
-        /// <summary>
-        /// The retrieve option from database.
-        /// </summary>
-        /// <param name="optionName">
-        /// The option name.
-        /// </param>
-        /// <returns>
-        /// The <see cref="string"/>.
-        /// </returns>
-        private string RetrieveOptionFromDatabase(string optionName)
-        {
-            try
-            {
-                var command =
-                    new MySqlCommand(
-                        "SELECT configuration_value FROM `configuration` WHERE configuration_name = @name LIMIT 1;");
-                command.Parameters.AddWithValue("@name", optionName);
-
-                string result = this.legacyDatabase.ExecuteScalarSelect(command) ?? string.Empty;
-                return result;
-            }
-            catch (Exception ex)
-            {
-                this.Log.Error(ex.Message, ex);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// The set global option.
-        /// </summary>
-        /// <param name="newValue">
-        /// The new value.
-        /// </param>
-        /// <param name="optionName">
-        /// The option name.
-        /// </param>
-        private void SetGlobalOption(string newValue, string optionName)
-        {
-            var command =
-                new MySqlCommand(
-                    "UPDATE configuration SET configuration_value = @value WHERE configuration_name = @name LIMIT 1;");
-
-            command.Parameters.AddWithValue("@value", newValue);
-            command.Parameters.AddWithValue("@name", optionName);
-
-            this.legacyDatabase.ExecuteCommand(command);
         }
 
         /// <summary>
@@ -317,7 +192,6 @@ namespace Helpmebot.Legacy.Configuration
             string configId = this.GetOptionId(optionName);
 
             // does setting exist in local table?
-            // INNER JOIN `channel` ON `channel_id` = `cc_channel` WHERE `channel_name` = '##helpmebot' AND `configuration_name` = 'silence'
             if (newValue == null)
             {
                 var deleteCommand =

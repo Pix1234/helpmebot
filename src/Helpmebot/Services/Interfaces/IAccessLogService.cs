@@ -42,7 +42,10 @@ namespace Helpmebot.Services.Interfaces
         /// <param name="arguments">
         /// The arguments.
         /// </param>
-        void Success(IUser user, Type command, IEnumerable<string> arguments);
+        /// <param name="destination">
+        /// The destination.
+        /// </param>
+        void Success(IUser user, Type command, IEnumerable<string> arguments, string destination);
 
         /// <summary>
         /// The failure.
@@ -56,6 +59,9 @@ namespace Helpmebot.Services.Interfaces
         /// <param name="arguments">
         /// The arguments.
         /// </param>
-        void Failure(IUser user, Type command, IEnumerable<string> arguments);
+        /// <param name="destination">
+        /// The destination.
+        /// </param>
+        void Failure(IUser user, Type command, IEnumerable<string> arguments, string destination);
     }
 }

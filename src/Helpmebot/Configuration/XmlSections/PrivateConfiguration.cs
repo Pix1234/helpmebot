@@ -145,6 +145,18 @@ namespace Helpmebot.Configuration.XmlSections
             }
         }
 
+        /// <summary>
+        /// Gets the acc deploy password.
+        /// </summary>
+        [ConfigurationProperty("accDeployPassword", DefaultValue = "")]
+        public string AccDeployPassword
+        {
+            get
+            {
+                return (string)base["accDeployPassword"];
+            }
+        }
+
         #endregion
     }
 }

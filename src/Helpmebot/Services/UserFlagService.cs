@@ -17,45 +17,101 @@
 //   Defines the UserFlagService type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace Helpmebot.Services
 {
-    using System;
     using System.Collections.Generic;
+    using System.Linq;
 
+    using Castle.Core.Logging;
+
+    using Helpmebot.ExtensionMethods;
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
-    using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Services.Interfaces;
+
+    using NHibernate;
+    using NHibernate.Linq;
 
     /// <summary>
     /// The user flag service.
     /// </summary>
     public class UserFlagService : IUserFlagService
     {
-        /// <summary>
-        /// The user repository.
-        /// </summary>
-        private readonly IUserRepository userRepository;
+        #region Fields
 
         /// <summary>
-        /// The flag group repository.
+        /// The logger.
         /// </summary>
-        private readonly IFlagGroupRepository flagGroupRepository;
+        private readonly ILogger logger;
+
+        /// <summary>
+        /// The flag group users.
+        /// </summary>
+        private IList<FlagGroupUser> flagGroupUsers;
+
+        /// <summary>
+        /// The flag group channels.
+        /// </summary>
+        private IList<FlagGroupChannel> flagGroupChannels;
+
+        #endregion
+
+        #region Constructors and Destructors
 
         /// <summary>
         /// Initialises a new instance of the <see cref="UserFlagService"/> class.
         /// </summary>
-        /// <param name="userRepository">
-        /// The user repository.
+        /// <param name="databaseSession">
+        /// The database Session.
         /// </param>
-        /// <param name="flagGroupRepository">
-        /// The flag group repository.
+        /// <param name="logger">
+        /// The logger.
         /// </param>
-        public UserFlagService(IUserRepository userRepository, IFlagGroupRepository flagGroupRepository)
+        public UserFlagService(ISession databaseSession, ILogger logger)
         {
-            this.userRepository = userRepository;
-            this.flagGroupRepository = flagGroupRepository;
+            this.logger = logger;
+            this.DatabaseSession = databaseSession;
+        }
+
+        #endregion
+
+        #region Public Properties
+
+        /// <summary>
+        /// Gets or sets the database session.
+        /// </summary>
+        public ISession DatabaseSession { get; set; }
+
+        #endregion
+
+        #region Public Methods and Operators
+
+        /// <summary>
+        /// The flags for user.
+        /// </summary>
+        /// <param name="flagGroups">
+        /// The flag groups.
+        /// </param>
+        /// <returns>
+        /// The <see cref="IEnumerable{String}"/>.
+        /// </returns>
+        public static IEnumerable<string> GetFlagsFromGroups(IEnumerable<FlagGroup> flagGroups)
+        {
+            var flags = new HashSet<string>();
+
+            var flagGroupList = flagGroups.ToList();
+
+            foreach (var flag in flagGroupList.Where(x => !x.DenyGroup))
+            {
+                flag.Flags.Select(x => x.Flag).ForEach(x => flags.Add(x));
+            }
+
+            foreach (var flag in flagGroupList.Where(x => x.DenyGroup))
+            {
+                flag.Flags.Select(x => x.Flag).ForEach(x => flags.Remove(x));
+            }
+
+            return flags;
         }
 
         /// <summary>
@@ -69,21 +125,76 @@ namespace Helpmebot.Services
         /// </returns>
         public IEnumerable<string> GetFlagsForUser(IUser user)
         {
-            throw new NotImplementedException();
+            if (this.flagGroupUsers == null)
+            {
+                this.logger.DebugFormat("Retrieving flag groups for user {1} from database", user);
+                this.flagGroupUsers = this.DatabaseSession.QueryOver<FlagGroupUser>().List();
+            }
+
+            var account = (user.Account ?? string.Empty).ToLower();
+            var nickname = (user.Nickname ?? string.Empty).ToLower();
+            var username = (user.Username ?? string.Empty).ToLower();
+            var hostname = (user.Hostname ?? string.Empty).ToLower();
+
+            var flagGroups = (from flagGroupUser in this.flagGroupUsers
+                              where
+                                  flagGroupUser.AccountRegex.Match(account).Success
+                                  && flagGroupUser.NicknameRegex.Match(nickname).Success
+                                  && flagGroupUser.UsernameRegex.Match(username).Success
+                                  && flagGroupUser.HostnameRegex.Match(hostname).Success
+                              select flagGroupUser.FlagGroup).ToList();
+
+            this.logger.DebugFormat("Retrieved {0} flag groups for user {1}", flagGroups.Count, user);
+
+            var flagsForUser = GetFlagsFromGroups(flagGroups).ToList();
+
+            this.logger.InfoFormat("Found flags for user {1}: {0}", flagsForUser.Implode(), user);
+            
+            return flagsForUser;
         }
 
         /// <summary>
-        /// The get flag group.
+        /// The get flags for channel.
         /// </summary>
-        /// <param name="name">
-        /// The name.
+        /// <param name="channel">
+        /// The channel name.
         /// </param>
         /// <returns>
-        /// The <see cref="FlagGroup"/>.
+        /// The <see cref="IEnumerable{String}"/>.
         /// </returns>
-        public FlagGroup GetFlagGroup(string name)
+        public IEnumerable<string> GetFlagsForChannel(Channel channel)
         {
-            throw new NotImplementedException();
+            if (channel == null)
+            {
+                return new List<string>();
+            }
+
+            if (this.flagGroupChannels == null)
+            {
+                this.logger.DebugFormat("Retrieving flag groups for channel {1} from database", channel);
+                this.flagGroupChannels = this.DatabaseSession.QueryOver<FlagGroupChannel>().List();
+            }
+
+            var groups = this.flagGroupChannels.Where(x => x.Channel.Equals(channel)).Select(x => x.FlagGroup).ToList();
+
+            this.logger.DebugFormat("Retrieved {0} flag groups for channel {1}", groups.Count, channel);
+
+            var flagsForChannel = GetFlagsFromGroups(groups).ToList();
+
+            this.logger.InfoFormat("Found flags for channel {1}: {0}", flagsForChannel.Implode(), channel);
+
+            return flagsForChannel;
         }
+
+        /// <summary>
+        /// The invalidate cache.
+        /// </summary>
+        public void InvalidateCache()
+        {
+            this.flagGroupUsers = null;
+            this.flagGroupChannels = null;
+        }
+
+        #endregion
     }
 }

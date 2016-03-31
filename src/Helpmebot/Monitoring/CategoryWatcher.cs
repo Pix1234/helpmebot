@@ -25,11 +25,14 @@ namespace Helpmebot.Monitoring
 
     using Castle.Core.Logging;
 
+    using Helpmebot.Configuration.XmlSections.Interfaces;
     using Helpmebot.ExtensionMethods;
     using Helpmebot.Legacy.Configuration;
     using Helpmebot.Model;
     using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Threading;
+
+    using NHibernate;
 
     /// <summary>
     ///     Category watcher thread
@@ -88,9 +91,6 @@ namespace Helpmebot.Monitoring
         /// <param name="category">
         /// The category.
         /// </param>
-        /// <param name="mediaWikiSiteRepository">
-        /// The media Wiki Site Repository.
-        /// </param>
         /// <param name="ignoredPagesRepository">
         /// The ignored Pages Repository.
         /// </param>
@@ -99,18 +99,19 @@ namespace Helpmebot.Monitoring
         /// </param>
         public CategoryWatcher(
             WatchedCategory category, 
-            IMediaWikiSiteRepository mediaWikiSiteRepository, 
-            IIgnoredPagesRepository ignoredPagesRepository, 
+            IIgnoredPagesRepository ignoredPagesRepository,
+            ICoreConfiguration coreConfiguration,
+            ISession databaseSession,
             ILogger logger)
         {
             this.watchedCategory = category;
 
             this.logger = logger;
 
-            // look up site id
-            string baseWiki = LegacyConfig.Singleton()["baseWiki"];
-            MediaWikiSite mediaWikiSite = mediaWikiSiteRepository.GetById(int.Parse(baseWiki));
-            this.site = mediaWikiSite;
+            this.site =
+                databaseSession.QueryOver<MediaWikiSite>()
+                    .Where(x => x.Name == coreConfiguration.DefaultMediaWikiSiteName)
+                    .SingleOrDefault();
 
             this.category = category.Category;
             this.key = category.Keyword;

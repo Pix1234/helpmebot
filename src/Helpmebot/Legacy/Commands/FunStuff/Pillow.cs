@@ -20,14 +20,17 @@
 
 namespace helpmebot6.Commands
 {
+    using Helpmebot.Attributes;
     using Helpmebot.Commands.FunStuff;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// The pillow.
     /// </summary>
-    internal class Pillow : ProtectedTargetedFunCommand
+    [CommandInvocation("pillow")]
+    [CommandFlag(Helpmebot.Model.Flag.Protected)]
+    public class Pillow : ProtectedTargetedFunCommand
     {
         /// <summary>
         /// Initialises a new instance of the <see cref="Pillow"/> class.
@@ -44,7 +47,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Pillow(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Pillow(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
