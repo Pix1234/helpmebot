@@ -20,17 +20,17 @@
 
 namespace helpmebot6.Commands
 {
-    using System;
     using System.Globalization;
     using System.Linq;
     using System.Net;
     using System.Text.RegularExpressions;
-    
+
     using Helpmebot;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.IRC.Model;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// The whois.
@@ -52,7 +52,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The command Service Helper.
         /// </param>
-        public Whois(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Whois(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

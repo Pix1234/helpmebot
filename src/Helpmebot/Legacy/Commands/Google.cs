@@ -18,31 +18,21 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
+using Helpmebot.Commands.CommandUtilities.Response;
+using Helpmebot.Model.Interfaces;
+
 namespace helpmebot6.Commands
 {
     using System.Web;
-
-    using Helpmebot;
+    
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Model;
     using Helpmebot.Services.Interfaces;
 
     using Microsoft.Practices.ServiceLocation;
 
     internal class Google : GenericCommand
     {
-        /// <summary>
-        /// Initialises a new instance of the <see cref="Google"/> class.
-        /// </summary>
-        /// <param name="commandServiceHelper">
-        /// The command Service Helper.
-        /// </param>
-        public Google(ICommandServiceHelper commandServiceHelper)
-            : base(commandServiceHelper)
-        {
-        }
-
         /// <summary>
         /// Initialises a new instance of the <see cref="GenericCommand"/> class.
         /// </summary>
@@ -58,7 +48,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The command Service Helper.
         /// </param>
-        public Google(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Google(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

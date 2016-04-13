@@ -121,7 +121,7 @@ namespace helpmebot6.Commands
         {
             if (this.Source == null || this.Source.Hostname == null)
             {
-                this.Log.Error("Rate limiting called with no source or no source hostname!");
+                this.Logger.Error("Rate limiting called with no source or no source hostname!");
                 return true;
             }
 
@@ -130,30 +130,30 @@ namespace helpmebot6.Commands
             {
                 if (RateLimitCache.ContainsKey(this.Source.Hostname))
                 {
-                    this.Log.Debug("Rate limit key found.");
+                    this.Logger.Debug("Rate limit key found.");
 
                     var cacheEntry = RateLimitCache[this.Source.Hostname];
 
                     if (cacheEntry.First.AddMinutes(RateLimitDuration) >= DateTime.Now)
                     {
-                        this.Log.Debug("Rate limit key NOT expired.");
+                        this.Logger.Debug("Rate limit key NOT expired.");
 
                         if (cacheEntry.Second >= RateLimitMax)
                         {
-                            this.Log.Debug("Rate limit HIT");
+                            this.Logger.Debug("Rate limit HIT");
 
                             // RATE LIMITED!
                             return true;
                         }
 
-                        this.Log.Debug("Rate limit incremented.");
+                        this.Logger.Debug("Rate limit incremented.");
 
                         // increment counter
                         cacheEntry.Second++;
                     }
                     else
                     {
-                        this.Log.Debug("Rate limit key is expired, resetting to new value.");
+                        this.Logger.Debug("Rate limit key is expired, resetting to new value.");
 
                         // Cache expired
                         cacheEntry.First = DateTime.Now;
@@ -162,7 +162,7 @@ namespace helpmebot6.Commands
                 }
                 else
                 {
-                    this.Log.Debug("Rate limit not found, creating key.");
+                    this.Logger.Debug("Rate limit not found, creating key.");
 
                     // Not in cache.
                     var cacheEntry = new RateLimitCacheEntry { First = DateTime.Now, Second = 1 };

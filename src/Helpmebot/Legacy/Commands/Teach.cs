@@ -18,10 +18,12 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
+using Helpmebot.Model.Interfaces;
+using Helpmebot.Services.Interfaces;
+
 namespace helpmebot6.Commands
 {
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
 
     internal class Teach : Learn
     {
@@ -40,8 +42,8 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Teach(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
-            : base(source, channel, args, commandServiceHelper)
+        public Teach(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper, IKeywordService keywordService)
+            : base(source, channel, args, commandServiceHelper, keywordService)
         {
         }
     }

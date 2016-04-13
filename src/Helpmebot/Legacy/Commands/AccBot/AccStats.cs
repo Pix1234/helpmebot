@@ -91,7 +91,7 @@ namespace helpmebot6.Commands
             }
             catch (WebException e)
             {
-                this.Log.Warn("Error getting remote data", e);
+                this.Logger.Warn("Error getting remote data", e);
                 return new CommandResponseHandler(e.Message);
             }
 

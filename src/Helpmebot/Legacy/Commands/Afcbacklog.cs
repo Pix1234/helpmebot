@@ -15,14 +15,15 @@
 //   Returns the number of articles currently waiting at Articles for Creation
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
+
+
+
 namespace helpmebot6.Commands
 {
-    using Helpmebot;
+    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Configuration;
-    using Helpmebot.Legacy.Model;
-    using Helpmebot.Model;
+    using Helpmebot.Model.Interfaces;
 
     /// <summary>
     /// Returns the number of articles currently waiting at Articles for Creation
@@ -44,7 +45,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Afcbacklog(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Afcbacklog(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
@@ -57,10 +58,7 @@ namespace helpmebot6.Commands
         /// </returns>
         protected override CommandResponseHandler ExecuteCommand()
         {
-            string baseWiki = LegacyConfig.Singleton()["baseWiki", this.Channel];
-
-            MediaWikiSite mediaWikiSite = this.CommandServiceHelper.MediaWikiSiteRepository.GetById(int.Parse(baseWiki));
-            var size = mediaWikiSite.GetCategorySize("Pending AfC submissions");
+            var size = this.CommandChannel.BaseWiki.GetCategorySize("Pending AfC submissions");
 
             if (size == 0)
             {

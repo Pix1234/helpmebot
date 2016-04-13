@@ -1,9 +1,9 @@
-﻿using Helpmebot.Commands.FunStuff;
-using Helpmebot.Commands.Interfaces;
-using Helpmebot.Legacy.Model;
-
-namespace helpmebot6.Commands
+﻿namespace helpmebot6.Commands
 {
+    using Helpmebot.Commands.FunStuff;
+    using Helpmebot.Commands.Interfaces;
+    using Helpmebot.Model.Interfaces;
+
     /// <summary>
     /// The tea.
     /// </summary>
@@ -24,7 +24,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Champagne(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Champagne(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

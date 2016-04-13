@@ -167,7 +167,8 @@ namespace Helpmebot.Startup.Installers
                         "JoinReceivedEvent", // Forced to use the string method with VS2015, or it becomes a runtime error
                         x =>
                         x.To<JoinMessageService>(l => l.WelcomeNewbieOnJoinEvent(null, null))
-                            .To<NotifyOnJoinService>(l => l.OnJoinReceivedEvent(null, null)))
+                            .To<NotifyOnJoinService>(l => l.OnJoinReceivedEvent(null, null))
+                            .To<BlockMonitoringService>(l => l.DoEventProcessing(null, null)))
                     .PublishEvent(
                         "InviteReceivedEvent", // Forced to use the string method with VS2015, or it becomes a runtime error
                         x => x.To<InviteHandlerService>(l => l.OnInviteReceivedEvent(null, null)));

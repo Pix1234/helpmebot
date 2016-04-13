@@ -28,18 +28,5 @@ namespace Helpmebot.Services.Interfaces
     /// </summary>
     public interface IBlockMonitoringService
     {
-        /// <summary>
-        /// The do event processing.
-        /// </summary>
-        /// <param name="channel">
-        /// The channel.
-        /// </param>
-        /// <param name="user">
-        /// The user.
-        /// </param>
-        /// <param name="sender">
-        /// The sender.
-        /// </param>
-        void DoEventProcessing(string channel, IUser user, IIrcClient sender);
     }
 }

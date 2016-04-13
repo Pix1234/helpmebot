@@ -52,6 +52,10 @@ namespace Helpmebot.Tests.TestData
                 new TestCaseData(
                     "nick!user@host", 
                     new IrcUser { Hostname = "host", Username = "user", Nickname = "nick" }));
+            this.testCaseData.Add(
+                new TestCaseData(
+                    "ChanServ!ChanServ@services.", 
+                    new IrcUser { Hostname = "services.", Username = "ChanServ", Nickname = "ChanServ" }));
         }
 
         #endregion

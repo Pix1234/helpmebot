@@ -15,11 +15,13 @@
 //   Defines the Whistle type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
+
+using Helpmebot.Commands.CommandUtilities.Response;
+using Helpmebot.Model.Interfaces;
+
 namespace helpmebot6.Commands
 {
-    using Helpmebot;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
 
     /// <summary>
     /// The whistle.
@@ -41,7 +43,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Whistle(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Whistle(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }

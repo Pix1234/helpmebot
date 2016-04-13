@@ -17,6 +17,9 @@
 //   Defines the JoinMessageService type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
+
+using Helpmebot.IRC.Interfaces;
+
 namespace Helpmebot.Services
 {
     using System;
@@ -110,39 +113,7 @@ namespace Helpmebot.Services
         #endregion
 
         #region Public Methods and Operators
-
-        /// <summary>
-        /// The get exceptions.
-        /// </summary>
-        /// <param name="channel">
-        /// The channel.
-        /// </param>
-        /// <returns>
-        /// The <see cref="IList{WelcomeUser}"/>.
-        /// </returns>
-        public virtual IList<WelcomeUser> GetExceptions(string channel)
-        {
-            var exceptions =
-                this.session.QueryOver<WelcomeUser>().Where(x => x.Channel == channel && x.Exception).List();
-            return exceptions;
-        }
-
-        /// <summary>
-        /// The get welcome users.
-        /// </summary>
-        /// <param name="channel">
-        /// The channel.
-        /// </param>
-        /// <returns>
-        /// The <see cref="IList{WelcomeUser}"/>.
-        /// </returns>
-        public virtual IList<WelcomeUser> GetWelcomeUsers(string channel)
-        {
-            var users =
-                this.session.QueryOver<WelcomeUser>().Where(x => x.Channel == channel && x.Exception == false).List();
-            return users;
-        }
-
+        
         /// <summary>
         /// The welcome newbie on join event.
         /// </summary>
@@ -154,6 +125,9 @@ namespace Helpmebot.Services
         /// </param>
         public void WelcomeNewbieOnJoinEvent(object sender, JoinEventArgs e)
         {
+            var networkUser = e.User;
+            var channel = e.Channel;
+
             // Rate limit this per hostname/channel
             if (this.RateLimit(networkUser.Hostname, channel))
             {

@@ -29,14 +29,16 @@ namespace Helpmebot.Services
     using Castle.Core.Logging;
 
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.IRC.Interfaces;
-    using Helpmebot.Legacy.Configuration;
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
     using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Services.Interfaces;
 
     using helpmebot6.Commands;
+
+    using Helpmebot.IRC.Events;
+
+    using NHibernate;
 
     /// <summary>
     /// The block monitoring service.
@@ -48,10 +50,9 @@ namespace Helpmebot.Services
         /// </summary>
         private readonly ILogger logger;
 
-        /// <summary>
-        /// The media wiki site repository.
-        /// </summary>
-        private readonly IMediaWikiSiteRepository mediaWikiSiteRepository;
+        private readonly IChannelRepository channelRepository;
+
+        private readonly ISession databaseSession;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BlockMonitoringService"/> class.
@@ -59,48 +60,39 @@ namespace Helpmebot.Services
         /// <param name="logger">
         /// The logger.
         /// </param>
-        /// <param name="mediaWikiSiteRepository">
-        /// The media wiki site repository.
+        /// <param name="channelRepository">
+        /// The channel repository.
         /// </param>
-        public BlockMonitoringService(ILogger logger, IMediaWikiSiteRepository mediaWikiSiteRepository)
+        /// <param name="databaseSession"></param>
+        public BlockMonitoringService(ILogger logger, IChannelRepository channelRepository, ISession databaseSession)
         {
             this.logger = logger;
-            this.mediaWikiSiteRepository = mediaWikiSiteRepository;
+            this.channelRepository = channelRepository;
+            this.databaseSession = databaseSession;
         }
 
         /// <summary>
         /// The do event processing.
         /// </summary>
-        /// <param name="channel">
-        /// The channel.
-        /// </param>
-        /// <param name="user">
-        /// The user.
-        /// </param>
-        /// <param name="client">
-        /// The client.
-        /// </param>
-        public void DoEventProcessing(string channel, IUser user, IIrcClient client)
+        public void DoEventProcessing(object sender, JoinEventArgs e)
         {
             try
             {
                 // channel checks
-                var alertChannel = this.GetAlertChannel(channel);
+                var alertChannel = this.GetAlertChannel(e.Channel);
                 if (alertChannel == null)
                 {
                     return;
                 }
 
-                var ip = this.GetIpAddress(user);
+                var ip = this.GetIpAddress(e.User);
 
                 if (ip == null)
                 {
                     return;
                 }
 
-                string baseWiki = LegacyConfig.Singleton()["baseWiki", channel];
-
-                MediaWikiSite mediaWikiSite = this.mediaWikiSiteRepository.GetById(int.Parse(baseWiki));
+                MediaWikiSite mediaWikiSite = this.channelRepository.GetByName(e.Channel, this.databaseSession).BaseWiki;
 
                 BlockInformation blockInformation = mediaWikiSite.GetBlockInformation(ip.ToString()).FirstOrDefault();
 
@@ -117,14 +109,14 @@ namespace Helpmebot.Services
 
                     var message = string.Format(
                         "Joined user {0} ({4}{5}) in channel {1} is blocked ({2}) because: {3}",
-                        user.Nickname,
-                        channel,
+                        e.User.Nickname,
+                        e.Channel,
                         blockInformation.Target,
                         blockInformation.BlockReason,
                         ip,
                         orgname);
 
-                    client.SendMessage(alertChannel, message);
+                    e.Client.SendMessage(alertChannel, message);
                 }
             }
             catch (Exception ex)

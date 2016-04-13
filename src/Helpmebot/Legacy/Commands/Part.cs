@@ -62,6 +62,11 @@ namespace helpmebot6.Commands
         {
             var channel = this.DatabaseSession.QueryOver<Channel>().Where(x => x.Name == this.Channel).SingleOrDefault();
 
+            if (channel == null)
+            {
+                return new CommandResponseHandler("Channel not found in configuration!", CommandResponseDestination.PrivateMessage);
+            }
+
             channel.Enabled = false;
             this.DatabaseSession.Save(channel);
 

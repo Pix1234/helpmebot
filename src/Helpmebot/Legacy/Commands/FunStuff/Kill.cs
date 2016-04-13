@@ -15,11 +15,13 @@
 //   Defines the Kill type.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
+
+using Helpmebot.Model.Interfaces;
+
 namespace helpmebot6.Commands
 {
     using Helpmebot.Commands.FunStuff;
     using Helpmebot.Commands.Interfaces;
-    using Helpmebot.Legacy.Model;
 
     /// <summary>
     /// The kill.
@@ -41,7 +43,7 @@ namespace helpmebot6.Commands
         /// <param name="commandServiceHelper">
         /// The message Service.
         /// </param>
-        public Kill(LegacyUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
+        public Kill(IUser source, string channel, string[] args, ICommandServiceHelper commandServiceHelper)
             : base(source, channel, args, commandServiceHelper)
         {
         }
