@@ -111,6 +111,38 @@ namespace Helpmebot.Tests.IRC.Messages
         }
 
         /// <summary>
+        /// The should parse correctly 6.
+        /// </summary>
+        [Test]
+        public void ShouldParseCorrectly6()
+        {
+            // arrange
+            string message = ":wolfe.freenode.net 005 hmbv7 CHANTYPES=# EXCEPTS INVEX CHANMODES=eIbq,k,flj,CFLMPQScgimnprstz CHANLIMIT=#:120 PREFIX=(ov)@+ MAXLIST=bqeI:100 MODES=4 NETWORK=freenode KNOCK STATUSMSG=@+ CALLERID=g :are supported by this server";
+            var expected = new Message(
+                "wolfe.freenode.net",
+                "005",
+                new List<string>
+                    {
+                        "hmbv7",
+                        "CHANTYPES=#",
+                        "EXCEPTS",
+                        "INVEX",
+                        "CHANMODES=eIbq,k,flj,CFLMPQScgimnprstz",
+                        "CHANLIMIT=#:120",
+                        "PREFIX=(ov)@+",
+                        "MAXLIST=bqeI:100",
+                        "MODES=4",
+                        "NETWORK=freenode",
+                        "KNOCK",
+                        "STATUSMSG=@+",
+                        "CALLERID=g",
+                        "are supported by this server"
+                    });
+
+            this.DoParseTest(message, expected);
+        }
+
+        /// <summary>
         /// The do parse test.
         /// </summary>
         /// <param name="message">

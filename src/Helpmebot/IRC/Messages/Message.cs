@@ -26,6 +26,8 @@ namespace Helpmebot.IRC.Messages
 
     using Helpmebot.ExtensionMethods;
 
+    using NHibernate.Param;
+
     /// <summary>
     /// The message.
     /// </summary>
@@ -168,14 +170,21 @@ namespace Helpmebot.IRC.Messages
 
                 if (parameters.Contains(" :") || parameters.StartsWith(":"))
                 {
-                    var paramend = parameters.Substring(parameters.IndexOf(":", StringComparison.Ordinal) + 1);
-                    var parameterList =
-                        parameters.Substring(0, parameters.IndexOf(":", StringComparison.Ordinal))
-                            .Split(separator, StringSplitOptions.RemoveEmptyEntries)
-                            .ToList();
+                    if (parameters.StartsWith(":"))
+                    {
+                        messageParameters = new List<string> { parameters.Substring(1) };
+                    }
+                    else
+                    {
+                        var paramend = parameters.Substring(parameters.IndexOf(" :", StringComparison.Ordinal) + 2);
+                        var parameterList =
+                            parameters.Substring(0, parameters.IndexOf(" :", StringComparison.Ordinal))
+                                .Split(separator, StringSplitOptions.RemoveEmptyEntries)
+                                .ToList();
 
-                    parameterList.Add(paramend);
-                    messageParameters = parameterList;
+                        parameterList.Add(paramend);
+                        messageParameters = parameterList;
+                    }
                 }
                 else
                 {
