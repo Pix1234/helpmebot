@@ -120,6 +120,7 @@
     <Compile Include="ExtensionMethods\StringExtensions.cs" />
     <Compile Include="ExtensionMethods\TypedFactoryExtensions.cs" />
     <Compile Include="Application.cs" />
+    <Compile Include="IApplication.cs" />
     <Compile Include="IRC\Events\JoinEventArgs.cs" />
     <Compile Include="IRC\Events\UserEventArgsBase.cs" />
     <Compile Include="IRC\Interfaces\IIrcClient.cs" />

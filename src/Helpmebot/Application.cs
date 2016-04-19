@@ -32,7 +32,7 @@ namespace Helpmebot
     /// <summary>
     /// The helpmebot.
     /// </summary>
-    public class Application : IDisposable
+    public class Application : IDisposable, IApplication
     {
         #region Fields
 
