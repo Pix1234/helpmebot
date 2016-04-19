@@ -21,6 +21,7 @@
 namespace Helpmebot.IdleBot
 {
     using System;
+    using System.Collections.Generic;
 
     using Castle.MicroKernel.Registration;
     using Castle.Windsor;
@@ -47,7 +48,18 @@ namespace Helpmebot.IdleBot
             ServiceLocator.SetLocatorProvider(() => new WindsorServiceLocator(container));
             container.Install(FromAssembly.Containing<Program>());
 
-            container.Register(Component.For<IApplication>().ImplementedBy<Application>());
+            container.Register(
+                Component.For<IApplication>().ImplementedBy<Application>(),
+                Component.For<HashSet<string>>()
+                    .Named("channels")
+                    .Instance(
+                        new HashSet<string>
+                            {
+                                "##stwalkerster",
+                                "##stwalkerster-development",
+                                "##helpmebot",
+                                "#wikipedia-en-accounts-devs"
+                            }));
 
             var application = container.Resolve<IApplication>();
 

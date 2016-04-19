@@ -21,9 +21,14 @@
 namespace Helpmebot.IdleBot
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
 
+    using Castle.Core.Internal;
+
     using Helpmebot.IRC.Interfaces;
+
+    using NHibernate.Mapping;
 
     /// <summary>
     /// The application.
@@ -36,6 +41,11 @@ namespace Helpmebot.IdleBot
         private readonly IIrcClient client;
 
         /// <summary>
+        /// The channels.
+        /// </summary>
+        private readonly HashSet<string> channels;
+
+        /// <summary>
         /// The exit flag.
         /// </summary>
         private readonly ManualResetEvent exitFlag;
@@ -46,9 +56,10 @@ namespace Helpmebot.IdleBot
         /// <param name="client">
         /// The client.
         /// </param>
-        public Application(IIrcClient client)
+        public Application(IIrcClient client, HashSet<string> channels)
         {
             this.client = client;
+            this.channels = channels;
             this.exitFlag = new ManualResetEvent(false);
         }
 
@@ -68,10 +79,7 @@ namespace Helpmebot.IdleBot
         /// </summary>
         public void Run()
         {
-            this.client.JoinChannel("##stwalkerster");
-            this.client.JoinChannel("##helpmebot");
-            this.client.JoinChannel("#wikipedia-en-help");
-            this.client.JoinChannel("#wikipedia-en-helpers");
+            this.channels.ForEach(this.client.JoinChannel);
 
             this.exitFlag.WaitOne();
         }

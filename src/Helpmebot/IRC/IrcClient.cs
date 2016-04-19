@@ -723,6 +723,7 @@ namespace Helpmebot.IRC
                 lock (this.userOperationLock)
                 {
                     // add the channel to the list of channels I'm in.
+                    this.logger.DebugFormat("Adding {0} to the list of channels I'm in.", channelName);
                     this.Channels.Add(channelName, new IrcChannel(channelName));
                 }
             }
@@ -734,6 +735,7 @@ namespace Helpmebot.IRC
                 {
                     if (!this.Channels[channelName].Users.ContainsKey(user.Nickname))
                     {
+                        this.logger.DebugFormat("Adding user {0} to the list of users in channel {1}", user, channelName);
                         this.Channels[channelName].Users.Add(
                             user.Nickname, 
                             new IrcChannelUser((IrcUser)user, channelName));
@@ -772,8 +774,8 @@ namespace Helpmebot.IRC
                 lock (this.userOperationLock)
                 {
                     var channelUsers = this.channels[channel].Users.Select(x => x.Key);
-                    foreach (
-                        var u in channelUsers.Where(u => this.channels.Count(x => x.Value.Users.ContainsKey(u)) == 0))
+                    var channelsWithUser = channelUsers.Where(u => this.channels.Count(x => x.Value.Users.ContainsKey(u)) == 0);
+                    foreach (var u in channelsWithUser)
                     {
                         this.logger.InfoFormat(
                             "{0} is no longer in any channel I'm in, removing them from tracking", 
@@ -783,6 +785,7 @@ namespace Helpmebot.IRC
                         this.userCache.Remove(u);
                     }
 
+                    this.logger.DebugFormat("Removing {0} from channel list", channel);
                     this.channels.Remove(channel);
                 }
             }
