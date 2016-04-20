@@ -41,6 +41,15 @@ namespace Helpmebot.IRC.Messages
         public const string Welcome = "001";
 
         /// <summary>
+        /// The I support message
+        /// </summary>
+        /// <remarks>
+        /// It's literally called ISUPPORT in the documentation, hence suppressing inconsistent naming warning
+        /// </remarks>
+        // ReSharper disable once InconsistentNaming
+        public const string ISupport = "005";
+
+        /// <summary>
         /// The no channel topic.
         /// </summary>
         public const string NoChannelTopic = "331";

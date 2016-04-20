@@ -46,6 +46,13 @@ namespace Helpmebot.IRC
     /// </summary>
     public class IrcClient : IIrcClient, IDisposable
     {
+        private Dictionary<string, Action<IrcChannelUser, bool>> modeMapping =
+            new Dictionary<string, Action<IrcChannelUser, bool>>
+                {
+                    { "v", (x, flag) => x.Voice = flag },
+                    { "o", (x, flag) => x.Operator = flag },
+                };
+
         #region Fields
 
         /// <summary>
@@ -107,6 +114,11 @@ namespace Helpmebot.IRC
         ///     The username.
         /// </summary>
         private readonly string username;
+
+        /// <summary>
+        /// The prefixes.
+        /// </summary>
+        private IDictionary<string, string> prefixes = new Dictionary<string, string>();
 
         /// <summary>
         ///     The cap extended join.
@@ -497,16 +509,16 @@ namespace Helpmebot.IRC
                     if (this.channels[channel].Users.ContainsKey(ircUser.Nickname))
                     {
                         IrcChannelUser channelUser = this.channels[channel].Users[ircUser.Nickname];
-                        channelUser.Operator = modes.Contains("@");
-                        channelUser.Voice = modes.Contains("+");
+
+                        channelUser.Operator = modes.Contains("@") && this.prefixes.Values.Contains("@");
+                        channelUser.Voice = modes.Contains("+") && this.prefixes.Values.Contains("+");
                     }
                     else
                     {
-                        var channelUser = new IrcChannelUser(ircUser, channel)
-                                              {
-                                                  Operator = modes.Contains("@"), 
-                                                  Voice = modes.Contains("+")
-                                              };
+                        var channelUser = new IrcChannelUser(ircUser, channel);
+
+                        channelUser.Operator = modes.Contains("@") && this.prefixes.Values.Contains("@");
+                        channelUser.Voice = modes.Contains("+") && this.prefixes.Values.Contains("+");
 
                         this.channels[channel].Users.Add(ircUser.Nickname, channelUser);
                     }
@@ -620,7 +632,7 @@ namespace Helpmebot.IRC
                     addMode = true;
                 }
 
-                if (c == 'o')
+                if (this.prefixes.ContainsKey(c.ToString()))
                 {
                     string nick = parameters[position];
 
@@ -628,25 +640,9 @@ namespace Helpmebot.IRC
                     {
                         IrcChannelUser channelUser = this.channels[channel].Users[nick];
 
-                        this.logger.InfoFormat("Seen {0}o on {1}.", addMode ? "+" : "-", channelUser);
+                        this.logger.InfoFormat("Seen {0}{2} on {1}.", addMode ? "+" : "-", channelUser, c);
 
-                        channelUser.Operator = addMode;
-
-                        position++;
-                    }
-                }
-
-                if (c == 'v')
-                {
-                    string nick = parameters[position];
-
-                    lock (this.userOperationLock)
-                    {
-                        IrcChannelUser channelUser = this.channels[channel].Users[nick];
-
-                        this.logger.InfoFormat("Seen {0}v on {1}.", addMode ? "+" : "-", channelUser, channel);
-
-                        channelUser.Voice = addMode;
+                        this.modeMapping[c.ToString()](channelUser, addMode);
 
                         position++;
                     }
@@ -864,6 +860,11 @@ namespace Helpmebot.IRC
                 this.OnNameReplyReceived(e);
             }
 
+            if (e.Message.Command == Numerics.ISupport)
+            {
+                this.OnISupportMessageRecieved(e);
+            }
+
             if (e.Message.Command == Numerics.WhoXReply)
             {
                 this.logger.DebugFormat("WHOX Reply:{0}", e.Message.Parameters.Implode());
@@ -923,6 +924,54 @@ namespace Helpmebot.IRC
                     List<string> parameters = e.Message.Parameters.ToList();
                     inviteReceivedEvent(this, new InviteEventArgs(e.Message, user, parameters[1], parameters[0], this));
                 }
+            }
+        }
+
+        private void OnISupportMessageRecieved(MessageReceivedEventArgs e)
+        {
+            // User modes in channels
+            var prefixMessage = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("PREFIX="));
+            if (prefixMessage != null)
+            {
+                this.HandlePrefixMessage(prefixMessage);
+            }
+
+            // status message for voiced/opped users only
+            var statusMessage = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("STATUSMSG="));
+
+            // Max mode changes in one command
+            var modeLimit = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("MODES="));
+
+            // Max mode changes in one command
+            var channelTypes = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("CHANTYPES="));
+
+            // max channels:
+            var chanLimit = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("CHANLIMIT="));
+
+            // whox
+        }
+
+        /// <summary>
+        /// The handle prefix message.
+        /// </summary>
+        /// <param name="prefixMessage">
+        /// The prefix message.
+        /// </param>
+        private void HandlePrefixMessage(string prefixMessage)
+        {
+            //// PREFIX=(Yqaohv)!~&@%+
+            var strings = prefixMessage.Split('(', ')');
+            var modes = strings[1];
+            var symbols = strings[2];
+            if (modes.Length != symbols.Length)
+            {
+                this.logger.ErrorFormat("RPL_ISUPPORT PREFIX not valid: {0}", prefixMessage);
+                return;
+            }
+
+            for (int i = 0; i < modes.Length; i++)
+            {
+                this.prefixes.Add(modes.Substring(i, 1), symbols.Substring(i, 1));
             }
         }
 
