@@ -36,6 +36,7 @@ namespace Helpmebot.IRC
     using Helpmebot.Configuration.XmlSections.Interfaces;
     using Helpmebot.ExtensionMethods;
     using Helpmebot.IRC.Events;
+    using Helpmebot.IRC.Exceptions;
     using Helpmebot.IRC.Interfaces;
     using Helpmebot.IRC.Messages;
     using Helpmebot.IRC.Model;
@@ -46,7 +47,10 @@ namespace Helpmebot.IRC
     /// </summary>
     public class IrcClient : IIrcClient, IDisposable
     {
-        private Dictionary<string, Action<IrcChannelUser, bool>> modeMapping =
+        /// <summary>
+        /// The mode mapping.
+        /// </summary>
+        private readonly Dictionary<string, Action<IrcChannelUser, bool>> modeMapping =
             new Dictionary<string, Action<IrcChannelUser, bool>>
                 {
                     { "v", (x, flag) => x.Voice = flag },
@@ -91,6 +95,11 @@ namespace Helpmebot.IRC
         private readonly string password;
 
         /// <summary>
+        /// The support helper.
+        /// </summary>
+        private readonly SupportHelper supportHelper;
+
+        /// <summary>
         ///     The real name.
         /// </summary>
         private readonly string realName;
@@ -118,7 +127,12 @@ namespace Helpmebot.IRC
         /// <summary>
         /// The prefixes.
         /// </summary>
-        private IDictionary<string, string> prefixes = new Dictionary<string, string>();
+        private readonly IDictionary<string, string> prefixes = new Dictionary<string, string>();
+
+        /// <summary>
+        /// The destination flags.
+        /// </summary>
+        private readonly IList<string> destinationFlags = new List<string>();
 
         /// <summary>
         ///     The cap extended join.
@@ -174,7 +188,10 @@ namespace Helpmebot.IRC
         /// <param name="password">
         /// The password.
         /// </param>
-        public IrcClient(INetworkClient client, ILogger logger, IIrcConfiguration ircConfiguration, string password)
+        /// <param name="supportHelper">
+        /// The helper for handling ISupport messages
+        /// </param>
+        public IrcClient(INetworkClient client, ILogger logger, IIrcConfiguration ircConfiguration, string password, SupportHelper supportHelper)
         {
             this.nickname = ircConfiguration.Nickname;
             this.networkClient = client;
@@ -183,6 +200,7 @@ namespace Helpmebot.IRC
             this.username = ircConfiguration.Username;
             this.realName = ircConfiguration.RealName;
             this.password = password;
+            this.supportHelper = supportHelper;
             this.networkClient.DataReceived += this.NetworkClientOnDataReceived;
             this.ReceivedMessage += this.OnMessageReceivedEvent;
 
@@ -413,8 +431,16 @@ namespace Helpmebot.IRC
         /// <param name="message">
         /// The message.
         /// </param>
-        public void SendMessage(string destination, string message)
+        /// <param name="destinationFlag">
+        /// The destination flag.
+        /// </param>
+        public void SendMessage(string destination, string message, DestinationFlags destinationFlag = null)
         {
+            if (destinationFlag != null && !this.destinationFlags.Contains(destinationFlag.Flag))
+            {
+                throw new OperationNotSupportedException("Message send requested with destination flag, but destination flag is not supported by this server.");
+            }
+
             this.Send(new Message("PRIVMSG", new[] { destination, message }));
         }
 
@@ -427,8 +453,16 @@ namespace Helpmebot.IRC
         /// <param name="message">
         /// The message.
         /// </param>
-        public void SendNotice(string destination, string message)
+        /// <param name="destinationFlag">
+        /// The destination Flag.
+        /// </param>
+        public void SendNotice(string destination, string message, DestinationFlags destinationFlag = null)
         {
+            if (destinationFlag != null && !this.destinationFlags.Contains(destinationFlag.Flag))
+            {
+                throw new OperationNotSupportedException("Message send requested with destination flag, but destination flag is not supported by this server.");
+            }
+
             this.Send(new Message("NOTICE", new[] { destination, message }));
         }
 
@@ -933,46 +967,26 @@ namespace Helpmebot.IRC
             var prefixMessage = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("PREFIX="));
             if (prefixMessage != null)
             {
-                this.HandlePrefixMessage(prefixMessage);
+                this.supportHelper.HandlePrefixMessageSupport(prefixMessage, this.prefixes);
             }
 
             // status message for voiced/opped users only
             var statusMessage = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("STATUSMSG="));
+            if (statusMessage != null)
+            {
+                this.supportHelper.HandleStatusMessageSupport(prefixMessage, this.destinationFlags);
+            }
 
             // Max mode changes in one command
             var modeLimit = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("MODES="));
 
-            // Max mode changes in one command
+            // Channel type prefixes
             var channelTypes = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("CHANTYPES="));
 
             // max channels:
             var chanLimit = e.Message.Parameters.FirstOrDefault(x => x.StartsWith("CHANLIMIT="));
 
             // whox
-        }
-
-        /// <summary>
-        /// The handle prefix message.
-        /// </summary>
-        /// <param name="prefixMessage">
-        /// The prefix message.
-        /// </param>
-        private void HandlePrefixMessage(string prefixMessage)
-        {
-            //// PREFIX=(Yqaohv)!~&@%+
-            var strings = prefixMessage.Split('(', ')');
-            var modes = strings[1];
-            var symbols = strings[2];
-            if (modes.Length != symbols.Length)
-            {
-                this.logger.ErrorFormat("RPL_ISUPPORT PREFIX not valid: {0}", prefixMessage);
-                return;
-            }
-
-            for (int i = 0; i < modes.Length; i++)
-            {
-                this.prefixes.Add(modes.Substring(i, 1), symbols.Substring(i, 1));
-            }
         }
 
         /// <summary>

@@ -140,7 +140,10 @@ namespace Helpmebot.IRC.Interfaces
         /// <param name="message">
         /// The message.
         /// </param>
-        void SendMessage(string destination, string message);
+        /// <param name="destinationFlag">
+        /// The destination flags.
+        /// </param>
+        void SendMessage(string destination, string message, DestinationFlags destinationFlag = null);
 
         /// <summary>
         /// The send notice.
@@ -151,7 +154,10 @@ namespace Helpmebot.IRC.Interfaces
         /// <param name="message">
         /// The message.
         /// </param>
-        void SendNotice(string destination, string message);
+        /// <param name="destinationFlag">
+        /// The destination flags.
+        /// </param>
+        void SendNotice(string destination, string message, DestinationFlags destinationFlag = null);
 
         #endregion
     }

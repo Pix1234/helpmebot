@@ -129,7 +129,7 @@ namespace Helpmebot.Tests.Services
                 new JoinEventArgs(null, networkUser.Object, "ab", this.ircNetwork.Object));
 
             // assert
-            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Never());
+            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>(), null), Times.Never());
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace Helpmebot.Tests.Services
                 new JoinEventArgs(null, networkUser.Object, "ab", this.ircNetwork.Object));
 
             // assert
-            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Never());
+            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>(), null), Times.Never());
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace Helpmebot.Tests.Services
                 new JoinEventArgs(null, networkUser.Object, "ab", this.ircNetwork.Object));
 
             // assert
-            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Once());
+            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>(), null), Times.Once());
         }
 
         /// <summary>
@@ -209,8 +209,8 @@ namespace Helpmebot.Tests.Services
                 new JoinEventArgs(null, networkUser.Object, "cd", this.ircNetwork.Object));
 
             // assert
-            this.ircNetwork.Verify(x => x.SendMessage("cd", It.IsAny<string>()), Times.Never());
-            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Never());
+            this.ircNetwork.Verify(x => x.SendMessage("cd", It.IsAny<string>(), null), Times.Never());
+            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>(), null), Times.Never());
         }
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace Helpmebot.Tests.Services
             this.joinMessageService.Object.WelcomeNewbieOnJoinEvent(this.ircNetwork.Object, joinArgs);
 
             // assert
-            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Exactly(2));
+            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>(), null), Times.Exactly(2));
         }
 
         /// <summary>
@@ -270,7 +270,7 @@ namespace Helpmebot.Tests.Services
             this.joinMessageService.Object.WelcomeNewbieOnJoinEvent(this.ircNetwork.Object, joinArgs);
 
             // assert
-            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Once());
+            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>(), null), Times.Once());
         }
 
         /// <summary>
@@ -297,8 +297,8 @@ namespace Helpmebot.Tests.Services
             this.joinMessageService.Object.WelcomeNewbieOnJoinEvent(this.ircNetwork.Object, joinArgs2);
 
             // assert
-            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>()), Times.Once());
-            this.ircNetwork.Verify(x => x.SendMessage("ef", It.IsAny<string>()), Times.Once());
+            this.ircNetwork.Verify(x => x.SendMessage("ab", It.IsAny<string>(), null), Times.Once());
+            this.ircNetwork.Verify(x => x.SendMessage("ef", It.IsAny<string>(), null), Times.Once());
         }
     }
 }

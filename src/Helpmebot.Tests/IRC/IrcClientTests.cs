@@ -28,7 +28,7 @@
             this.IrcConfiguration.Setup(x => x.Nickname).Returns("nickname");
             this.IrcConfiguration.Setup(x => x.Username).Returns("username");
             this.IrcConfiguration.Setup(x => x.RealName).Returns("real name");
-            var client = new IrcClient(network.Object, this.Logger.Object, this.IrcConfiguration.Object, string.Empty);
+            var client = new IrcClient(network.Object, this.Logger.Object, this.IrcConfiguration.Object, string.Empty, new Mock<SupportHelper>().Object);
 
             // init IRC
             // Setup capabilities
@@ -71,7 +71,7 @@
             this.IrcConfiguration.Setup(x => x.Nickname).Returns("nickname");
             this.IrcConfiguration.Setup(x => x.Username).Returns("username");
             this.IrcConfiguration.Setup(x => x.RealName).Returns("real name");
-            var client = new IrcClient(network.Object, this.Logger.Object, this.IrcConfiguration.Object, string.Empty);
+            var client = new IrcClient(network.Object, this.Logger.Object, this.IrcConfiguration.Object, string.Empty, new Mock<SupportHelper>().Object);
 
             // init IRC
             // Setup capabilities

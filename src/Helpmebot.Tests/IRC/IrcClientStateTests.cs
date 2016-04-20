@@ -56,11 +56,12 @@ namespace Helpmebot.Tests.IRC
         /// </param>
         public void DoSetup(string nickName)
         {
+            Mock<SupportHelper> supportMock = new Mock<SupportHelper>();
             this.networkClient = new Mock<INetworkClient>();
             this.IrcConfiguration.Setup(x => x.Nickname).Returns(nickName);
             this.IrcConfiguration.Setup(x => x.Username).Returns("username");
             this.IrcConfiguration.Setup(x => x.RealName).Returns("real name");
-            this.client = new IrcClient(this.networkClient.Object, this.Logger.Object, this.IrcConfiguration.Object, "pw");
+            this.client = new IrcClient(this.networkClient.Object, this.Logger.Object, this.IrcConfiguration.Object, "pw", supportMock.Object);
         }
 
         /// <summary>
