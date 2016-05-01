@@ -106,7 +106,8 @@ namespace Helpmebot.IdleBot
                 Component.For<IIrcConfiguration>().Instance(configurationHelper.IrcConfiguration),
                 Component.For<ILegacyDatabase>().ImplementedBy<LegacyDatabase>(),
                 Classes.FromThisAssembly().InNamespace("Helpmebot.Repositories").WithService.AllInterfaces(),
-                Classes.FromThisAssembly().InNamespace("Helpmebot.Services").WithService.AllInterfaces());
+                Classes.FromThisAssembly().InNamespace("Helpmebot.Services").WithService.AllInterfaces(),
+                Component.For<SupportHelper>());
 
             Type networkClientType = configurationHelper.IrcConfiguration.Ssl
                                          ? typeof(SslNetworkClient)

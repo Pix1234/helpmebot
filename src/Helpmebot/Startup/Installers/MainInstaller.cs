@@ -140,6 +140,7 @@ namespace Helpmebot.Startup.Installers
                 Component.For<ICommandHandler>().ImplementedBy<CommandHandler>(), 
                 Component.For<ICommandTypedFactory>().AsFactory(), 
                 Component.For<IKeywordCommandFactory>().AsFactory(), 
+                Component.For<SupportHelper>(),
                 commands, 
                 legacyCommands);
 
