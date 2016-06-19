@@ -81,7 +81,9 @@ namespace Helpmebot.Configuration.XmlSections
         /// <summary>
         /// Gets the user agent.
         /// </summary>
-        [ConfigurationProperty("useragent", DefaultValue = "Helpmebot/6.0 (+http://helpmebot.org.uk)")]
+        [ConfigurationProperty(
+            "useragent", 
+            DefaultValue = "Helpmebot/7.0 (+https://helpmebot.org.uk)")]
         public string UserAgent
         {
             get

@@ -75,6 +75,18 @@ namespace Helpmebot.Configuration.XmlSections.Interfaces
         string IpInfoDbApiKey { get; }
 
         /// <summary>
+        ///     Gets the Google API key.
+        /// </summary>
+        [ConfigurationProperty("googleApiKey", DefaultValue = "")]
+        string GoogleApiKey { get; }
+
+        /// <summary>
+        /// Gets the max mind database path.
+        /// </summary>
+        [ConfigurationProperty("maxMindDatabasePath", DefaultValue = "")]
+        string MaxMindDatabasePath { get; }
+
+        /// <summary>
         /// Gets the acc deploy password.
         /// </summary>
         [ConfigurationProperty("accDeployPassword", DefaultValue = "")]

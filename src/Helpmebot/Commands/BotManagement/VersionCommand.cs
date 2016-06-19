@@ -20,6 +20,7 @@
 
 namespace Helpmebot.Commands.BotManagement
 {
+    using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Reflection;
@@ -33,10 +34,7 @@ namespace Helpmebot.Commands.BotManagement
     using Helpmebot.Model.Interfaces;
 
     using NHibernate;
-#if !DEBUG
-    using System;
-#endif
-    
+
     /// <summary>
     ///   Returns the current version of the bot.
     /// </summary>
@@ -84,7 +82,7 @@ namespace Helpmebot.Commands.BotManagement
         /// </returns>
         protected override IEnumerable<CommandResponse> Execute()
         {
-            System.Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            Version version = Assembly.GetExecutingAssembly().GetName().Version;
 
 #if !DEBUG
             var date = new DateTime(2000, 1, 1, 0, 0, 0);
@@ -98,12 +96,14 @@ namespace Helpmebot.Commands.BotManagement
 #if DEBUG
                                       "*",
                                       "*",
-                                      "DEBUG"
+                                      "DEBUG",
 #else
                                       version.Build.ToString(CultureInfo.InvariantCulture),
                                       version.Revision.ToString(CultureInfo.InvariantCulture),
-                                      date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+                                      date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
 #endif
+                                      Environment.OSVersion.ToString(),
+                                      Environment.Version.ToString()
                                   };
 
             string message = this.CommandServiceHelper.MessageService.RetrieveMessage(

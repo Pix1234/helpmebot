@@ -63,6 +63,7 @@ namespace Helpmebot.Legacy.Configuration
         {
             // FIXME: ServiceLocator - Legacy database
             this.legacyDatabase = ServiceLocator.Current.GetInstance<ILegacyDatabase>();
+            this.Log = ServiceLocator.Current.GetInstance<ILogger>().CreateChildLogger("LegacyConfig");
             this.legacyDatabase.Connect();
 
             this.configurationCache = new Dictionary<string, ConfigurationSetting>();
@@ -187,13 +188,19 @@ namespace Helpmebot.Legacy.Configuration
         /// </param>
         private void SetLocalOption(string channel, string optionName, string newValue)
         {
-            string channelId = this.GetChannelId(channel);
+            this.Log.InfoFormat("Setting local option {0} in {1} to {2}", optionName, channel, newValue);
 
+            string channelId = this.GetChannelId(channel);
+            
             string configId = this.GetOptionId(optionName);
+
+            this.Log.DebugFormat("Using channelId '{0}' and configId '{1}'", channelId, configId);
 
             // does setting exist in local table?
             if (newValue == null)
             {
+                this.Log.Debug("Deleting local setting");
+
                 var deleteCommand =
                     new MySqlCommand(
                         "DELETE FROM channelconfig WHERE cc_config = @config AND cc_channel = @channel LIMIT 1;");
@@ -215,6 +222,8 @@ namespace Helpmebot.Legacy.Configuration
 
             if (count == "1")
             {
+                this.Log.Debug("Updating local setting");
+
                 // yes: Update
                 var command =
                     new MySqlCommand(
@@ -228,9 +237,11 @@ namespace Helpmebot.Legacy.Configuration
             }
             else
             {
+                this.Log.Debug("inserting local setting");
+
                 // no: Insert
                 var command = new MySqlCommand("INSERT INTO channelconfig VALUES ( @channel, @config, @value );");
-                command.Parameters.AddWithValue("@channel", channel);
+                command.Parameters.AddWithValue("@channel", channelId);
                 command.Parameters.AddWithValue("@config", configId);
                 command.Parameters.AddWithValue("@value", newValue);
                 this.legacyDatabase.ExecuteCommand(command);

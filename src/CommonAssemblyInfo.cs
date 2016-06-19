@@ -23,7 +23,10 @@ using System.Resources;
 
 [assembly: AssemblyCompany("Simon Walker")]
 [assembly: AssemblyProduct("Helpmebot")]
-[assembly: AssemblyCopyright("Copyright Simon Walker (c) 2009-2015 Some Rights Reserved")]
+[assembly: AssemblyCopyright("Copyright Simon Walker (c) 2009-2016 Some Rights Reserved")]
 [assembly: AssemblyTrademark("")]
+
+// OK. If you change this, please ALSO change this in Configuration/XmlSections/CoreConfiguration and in
+// Configuration/XmlSections/Interfaces/ICoreConfiguration - specifically the UserAgent values
 [assembly: AssemblyVersion("7.0.*")]
 [assembly: NeutralResourcesLanguage("en-GB")]
