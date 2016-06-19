@@ -349,6 +349,15 @@ namespace Helpmebot.IRC
         }
 
         /// <summary>
+        /// Blocks until the connection is registered.
+        /// </summary>
+        public void WaitOnRegistration()
+        {
+            this.connectionRegistrationSemaphore.WaitOne();
+            this.connectionRegistrationSemaphore.Release();
+        }
+
+        /// <summary>
         /// The join.
         /// </summary>
         /// <param name="channel">

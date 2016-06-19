@@ -46,6 +46,8 @@ namespace Helpmebot.Startup.Installers
 
     using helpmebot6.Commands;
 
+    using Helpmebot.Background;
+    using Helpmebot.Background.Interfaces;
     using Helpmebot.Services.Geolocation;
     using Helpmebot.Services.Interfaces;
     using Helpmebot.Services.UrlShortening;
@@ -184,14 +186,19 @@ namespace Helpmebot.Startup.Installers
 
             container.Register(
                 networkClient, 
-                ircClient, 
-                Classes.FromThisAssembly().InNamespace("Helpmebot.Background").WithService.AllInterfaces(), 
+                ircClient,
                 Component.For<Application>());
-
+            
             // This must come after the configuration has been registered.
             container.AddFacility<StartableFacility>(f => f.DeferredStart()).AddFacility<PersistenceFacility>();
-        }
 
+            container.Register(
+                Component.For<ICategoryWatcherBackgroundService>()
+                    .ImplementedBy<CategoryWatcherBackgroundService>()
+                    .Start(),
+                Component.For<ISystemMonitoringClientService>().ImplementedBy<SystemMonitoringClientService>().Start(),
+                Component.For<INotificationBackgroundService>().ImplementedBy<NotificationBackgroundService>().Start());
+        }
         #endregion
     }
 }

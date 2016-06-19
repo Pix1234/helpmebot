@@ -160,5 +160,10 @@ namespace Helpmebot.IRC.Interfaces
         void SendNotice(string destination, string message, DestinationFlags destinationFlag = null);
 
         #endregion
+
+        /// <summary>
+        /// Blocks until the connection is registered.
+        /// </summary>
+        void WaitOnRegistration();
     }
 }

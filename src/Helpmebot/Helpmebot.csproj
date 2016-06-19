@@ -75,12 +75,14 @@
     </Compile>
     <Compile Include="Attributes\CommandFlagAttribute.cs" />
     <Compile Include="Attributes\CommandInvocationAttribute.cs" />
+    <Compile Include="Background\Interfaces\ICategoryWatcherBackgroundService.cs" />
     <Compile Include="Background\Interfaces\ISystemMonitoringClientService.cs" />
     <Compile Include="Background\Interfaces\INotificationBackgroundService.cs" />
     <Compile Include="Background\Interfaces\ITimerBackgroundService.cs" />
     <Compile Include="Background\NotificationBackgroundService.cs" />
     <Compile Include="Background\SystemMonitoringClientService.cs" />
     <Compile Include="Background\TimerBackgroundServiceBase.cs" />
+    <Compile Include="Background\CategoryWatcherBackgroundService.cs" />
     <Compile Include="Commands\BotManagement\ClearMessageCacheCommand.cs" />
     <Compile Include="Commands\BotManagement\DieCommand.cs" />
     <Compile Include="Commands\BotManagement\UptimeCommand.cs" />
@@ -168,9 +170,12 @@
     <Compile Include="Legacy\Commands\Teach.cs" />
     <Compile Include="Legacy\Commands\Whois.cs" />
     <Compile Include="Legacy\Database\ILegacyDatabase.cs" />
+    <Compile Include="Model\ActiveCategoryWatcher.cs" />
     <Compile Include="Model\CachedItem.cs" />
+    <Compile Include="Model\CategoryWatcher.cs" />
     <Compile Include="Model\FlagGroupChannel.cs" />
     <Compile Include="Model\ResponseMessage.cs" />
+    <Compile Include="Persistence\Mappings\CategoryWatcherMap.cs" />
     <Compile Include="Persistence\Mappings\FlagGroupChannelMap.cs" />
     <Compile Include="Repositories\ChannelRepository.cs" />
     <Compile Include="Repositories\Interfaces\IBasicRepository.cs" />
@@ -394,6 +399,10 @@
     </Reference>
     <Reference Include="NHibernate, Version=4.0.0.4000, Culture=neutral, PublicKeyToken=aa95f207798dfdb4, processorArchitecture=MSIL">
       <HintPath>..\packages\NHibernate.4.0.4.4000\lib\net40\NHibernate.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Priority Queue, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\OptimizedPriorityQueue.2.0.0\lib\net45\Priority Queue.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">

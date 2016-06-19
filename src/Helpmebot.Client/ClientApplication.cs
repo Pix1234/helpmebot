@@ -73,7 +73,8 @@ namespace Helpmebot.Client
                 Console.WriteLine("   1: Apply v6->v7 schema updates");
                 Console.WriteLine("   2: Recreate permissions");
                 Console.WriteLine("   3: Migrate sites and channels");
-                Console.WriteLine("   4: Apply v6 schema cleanup operations");
+                Console.WriteLine("   4: Migrate category watchers");
+                Console.WriteLine("   9: Apply v6 schema cleanup operations");
                 Console.WriteLine();
                 Console.Write("Choice [0]: ");
                 var readLine = Console.ReadLine();
@@ -100,6 +101,11 @@ namespace Helpmebot.Client
 
                 if (readLine == "4")
                 {
+                    this.DoTransactionally(this.MigrateCategoryWatchers);
+                }
+
+                if (readLine == "9")
+                {
                     this.DoSchemaChanges(this.DoFinalSchemaUpdates);
                 }
 
@@ -120,6 +126,10 @@ namespace Helpmebot.Client
             this.DoSingleSchemaChange("DROP TABLE channel_old;", database);
             this.DoSingleSchemaChange("DROP TABLE site;", database);
             this.DoSingleSchemaChange("DROP TABLE ircnetwork;", database);
+            this.DoSingleSchemaChange("DROP TABLE channelwatchers;", database);
+            this.DoSingleSchemaChange("DROP TABLE watcher;", database);
+            this.DoSingleSchemaChange("DROP TABLE channelconfig;", database);
+            this.DoSingleSchemaChange("DROP TABLE configuration;", database);
         }
 
         /// <summary>
@@ -279,6 +289,34 @@ namespace Helpmebot.Client
                         ON DELETE CASCADE
                         ON UPDATE CASCADE)
                     ENGINE = InnoDB;", 
+                database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE categorywatcher (
+                    id CHAR(36) PRIMARY KEY NOT NULL,
+                    channel CHAR(36) NOT NULL,
+                    mediawikisite CHAR(36) NOT NULL,
+                    category VARCHAR(255) NOT NULL,
+                    priority INT DEFAULT 1 NOT NULL,
+                    keyword VARCHAR(20) NOT NULL,
+                    sleeptime INT DEFAULT 20 NOT NULL,
+                    showwikilink INT DEFAULT 1 NOT NULL,
+                    showshorturl INT DEFAULT 1 NOT NULL,
+                    showwaittime INT DEFAULT 1 NOT NULL,
+                    minwaittime INT DEFAULT 60 NOT NULL,
+                    delta INT DEFAULT 0 NOT NULL,
+                    enabled INT DEFAULT 1 NOT NULL,
+                    CONSTRAINT categorywatcher_channel_id_fk FOREIGN KEY (channel) REFERENCES channel (id) ON DELETE CASCADE ON UPDATE CASCADE,
+                    CONSTRAINT categorywatcher_mediawikisite_id_fk FOREIGN KEY (mediawikisite) REFERENCES mediawikisite (id)
+                ) ENGINE=InnoDB;",
+                database);
+
+            this.DoSingleSchemaChange(
+                "CREATE UNIQUE INDEX categorywatcher_category_uindex ON helpmebot_devel.categorywatcher(channel, category, mediawikisite);",
+                database);
+
+            this.DoSingleSchemaChange(
+                "CREATE UNIQUE INDEX categorywatcher_keyword_uindex ON helpmebot_devel.categorywatcher(channel, keyword)",
                 database);
         }
 
@@ -566,6 +604,60 @@ FROM channel_old c;");
 
                 database.Save(groupUser);
             }
+        }
+
+        /// <summary>
+        /// The migrate category watchers.
+        /// </summary>
+        /// <param name="database">
+        /// The database.
+        /// </param>
+        private void MigrateCategoryWatchers(ISession database)
+        {
+            var queryString = @"
+                INSERT INTO categorywatcher
+                SELECT
+                  uuid()                                AS id,
+                  c.id                                  AS channel,
+                  c.basewiki                            AS mediawikisite,
+                  w.watcher_category                    AS category,
+                  w.watcher_priority                    AS priority,
+                  w.watcher_keyword                     AS keyword,
+                  cast(w.watcher_sleeptime / 60 AS INT) AS sleeptime,
+                  1                                     AS showwikilink,
+                  CASE (
+                    SELECT cc_value
+                    FROM channelconfig cc
+                      INNER JOIN configuration cfg
+                        ON cc_config = configuration_id AND configuration_name = 'useShortUrlsInsteadOfWikilinks'
+                    WHERE cc.cc_channel = co.channel_id)
+                    WHEN 'false' THEN 0
+                    WHEN 'true' THEN 1
+                    ELSE 0
+                  END                                   AS showshorturl,
+                  CASE (
+                    SELECT cc_value
+                    FROM channelconfig cc
+                      INNER JOIN configuration cfg 
+                        ON cc_config = configuration_id AND configuration_name = 'showWaitTime'
+                    WHERE cc.cc_channel = co.channel_id)
+                    WHEN 'false' THEN 0
+                    WHEN 'true' THEN 1
+                    ELSE 0
+                  END                                   AS showwaittime,
+                  60                                    AS minwaittime,
+                  0                                     AS delta,
+                  CASE
+                    WHEN c.enabled = 0 THEN 0
+                    ELSE 1
+                  END                                   AS enabled
+                FROM watcher w
+                  JOIN channelwatchers cw ON cw_watcher = w.watcher_id
+                  LEFT JOIN channel_old co ON co.channel_id = cw.cw_channel
+                  LEFT JOIN channel c ON co.channel_name = c.name
+                ORDER BY watcher_id;";
+
+            database.CreateSQLQuery(queryString).ExecuteUpdate();
         }
     }
 }
