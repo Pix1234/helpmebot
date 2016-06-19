@@ -34,8 +34,8 @@ namespace Helpmebot.Persistence.Mappings
         public IgnoredPageMap()
         {
             this.Table("ignoredpages");
-            this.Id(x => x.Id, "ip_id");
-            this.Map(x => x.Title, "ip_title");
+            this.Id(x => x.Id, "id").GeneratedBy.GuidComb();
+            this.Map(x => x.Title, "title");
         }
 
         #endregion

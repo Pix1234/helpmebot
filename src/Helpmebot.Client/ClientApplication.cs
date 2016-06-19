@@ -13,11 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   along with Helpmebot.  If not, see http://www.gnu.org/licenses/ .
 // </copyright>
-// <summary>
-//   The client application.
-// </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace Helpmebot.Client
 {
     using System;
@@ -33,34 +29,28 @@ namespace Helpmebot.Client
     using NHibernate;
 
     /// <summary>
-    /// The client application.
+    ///     The client application.
     /// </summary>
     public class ClientApplication : IApplication
     {
-        #region Fields
+        /// <summary>
+        ///     The database session factory.
+        /// </summary>
+        private readonly ISessionFactory databaseSessionFactory;
 
         /// <summary>
-        /// The logger.
+        ///     The logger.
         /// </summary>
         private readonly ILogger logger;
 
         /// <summary>
-        /// The database session factory.
-        /// </summary>
-        private readonly ISessionFactory databaseSessionFactory;
-
-        #endregion
-
-        #region Constructors and Destructors
-
-        /// <summary>
-        /// Initialises a new instance of the <see cref="ClientApplication"/> class.
+        ///     Initializes a new instance of the <see cref="ClientApplication" /> class.
         /// </summary>
         /// <param name="logger">
-        /// The logger.
+        ///     The logger.
         /// </param>
         /// <param name="databaseSessionFactory">
-        /// The database session Factory.
+        ///     The database session Factory.
         /// </param>
         public ClientApplication(ILogger logger, ISessionFactory databaseSessionFactory)
         {
@@ -68,10 +58,8 @@ namespace Helpmebot.Client
             this.databaseSessionFactory = databaseSessionFactory;
         }
 
-        #endregion
-
         /// <summary>
-        /// The run.
+        ///     The run.
         /// </summary>
         public void Run()
         {
@@ -82,8 +70,10 @@ namespace Helpmebot.Client
                 Console.WriteLine();
                 Console.WriteLine("Please choose an option:");
                 Console.WriteLine("   0: Exit");
-                Console.WriteLine("   1: Recreate permissions");
-                Console.WriteLine("   2: Migrate sites and channels");
+                Console.WriteLine("   1: Apply v6->v7 schema updates");
+                Console.WriteLine("   2: Recreate permissions");
+                Console.WriteLine("   3: Migrate sites and channels");
+                Console.WriteLine("   4: Apply v6 schema cleanup operations");
                 Console.WriteLine();
                 Console.Write("Choice [0]: ");
                 var readLine = Console.ReadLine();
@@ -95,12 +85,22 @@ namespace Helpmebot.Client
 
                 if (readLine == "1")
                 {
-                    this.DoTransactionally(this.RecreatePermissions);
+                    this.DoSchemaChanges(this.DoSchemaUpdates);
                 }
 
                 if (readLine == "2")
                 {
+                    this.DoTransactionally(this.RecreatePermissions);
+                }
+
+                if (readLine == "3")
+                {
                     this.DoTransactionally(this.MigrateSitesAndChannels);
+                }
+
+                if (readLine == "4")
+                {
+                    this.DoSchemaChanges(this.DoFinalSchemaUpdates);
                 }
 
                 Console.Clear();
@@ -108,10 +108,200 @@ namespace Helpmebot.Client
         }
 
         /// <summary>
-        /// do something in a transaction.
+        ///     The do final schema updates.
+        /// </summary>
+        /// <param name="database">
+        ///     The database.
+        /// </param>
+        private void DoFinalSchemaUpdates(ISession database)
+        {
+            this.DoSingleSchemaChange("DROP TABLE command;", database);
+            this.DoSingleSchemaChange("DROP TABLE user;", database);
+            this.DoSingleSchemaChange("DROP TABLE channel_old;", database);
+            this.DoSingleSchemaChange("DROP TABLE site;", database);
+            this.DoSingleSchemaChange("DROP TABLE ircnetwork;", database);
+        }
+
+        /// <summary>
+        ///     The do schema changes.
         /// </summary>
         /// <param name="action">
-        /// The action.
+        ///     The action.
+        /// </param>
+        private void DoSchemaChanges(Action<ISession> action)
+        {
+            this.logger.InfoFormat("Opening database connection");
+            var database = this.databaseSessionFactory.OpenSession();
+
+            try
+            {
+                action(database);
+
+                database.Close();
+            }
+            catch (Exception e)
+            {
+                this.logger.Error(e.Message, e);
+                database.Close();
+            }
+
+            this.logger.Info("Done. Press a key to continue.");
+            Console.ReadLine();
+        }
+
+        /// <summary>
+        ///     The do schema updates.
+        /// </summary>
+        /// <param name="database">
+        ///     The database.
+        /// </param>
+        private void DoSchemaUpdates(ISession database)
+        {
+            this.DoSingleSchemaChange("alter table channel rename to channel_old;", database);
+
+            this.DoSingleSchemaChange(
+                "ALTER TABLE ignoredpages ADD COLUMN id CHAR(36) NOT NULL FIRST;", 
+                database);
+            this.DoSingleSchemaChange("UPDATE ignoredpages SET id = uuid();", database);
+            this.DoSingleSchemaChange(
+                @"ALTER TABLE ignoredpages
+                      DROP PRIMARY KEY,
+                      DROP COLUMN ip_id,
+                      CHANGE COLUMN ip_title title VARCHAR(255) NOT NULL,
+                      CHANGE COLUMN id id CHAR(36) NOT NULL PRIMARY KEY; ", 
+                database);
+
+            this.DoSingleSchemaChange(
+                @"ALTER TABLE accesslog
+                    CHANGE COLUMN al_accesslevel al_accesslevel VARCHAR(45) NOT NULL ,
+                    CHANGE COLUMN al_reqaccesslevel al_reqaccesslevel VARCHAR(45) NOT NULL ,
+                    ADD COLUMN account VARCHAR(45) NULL DEFAULT NULL AFTER al_nuh;", 
+                    database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE IF NOT EXISTS mediawikisite (
+                      id CHAR(36) NOT NULL,
+                      api VARCHAR(255) NOT NULL,
+                      username VARCHAR(255) NULL DEFAULT NULL,
+                      password VARCHAR(255) NULL DEFAULT NULL,
+                      name VARCHAR(45) NOT NULL,
+                      PRIMARY KEY (id))
+                    ENGINE = InnoDB;", 
+                    database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE IF NOT EXISTS channelnew (
+                      id CHAR(36) NOT NULL,
+                      name VARCHAR(30) NOT NULL,
+                      password VARCHAR(255) NULL DEFAULT NULL,
+                      enabled INT(11) NOT NULL DEFAULT '1',
+                      silence INT(11) NOT NULL DEFAULT '0',
+                      basewiki CHAR(36) NULL DEFAULT NULL,
+                      hedgehog INT(11) NOT NULL DEFAULT '0',
+                      autolink INT(11) NOT NULL DEFAULT '0',
+                      longuserinfo INT(11) NOT NULL DEFAULT '0',
+                      PRIMARY KEY (id),
+                      UNIQUE INDEX name_UNIQUE (name ASC),
+                      INDEX fk_channelnew_mediawikisite1_idx (basewiki ASC),
+                      CONSTRAINT fk_channelnew_mediawikisite1
+                        FOREIGN KEY (basewiki)
+                        REFERENCES mediawikisite (id)
+                        ON DELETE SET NULL
+                        ON UPDATE CASCADE)
+                    ENGINE = InnoDB;", 
+                    database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE IF NOT EXISTS flaggroup (
+                      id CHAR(36) NOT NULL,
+                      name VARCHAR(45) NOT NULL,
+                      denygroup INT(11) NOT NULL DEFAULT '0',
+                      protected INT(11) NOT NULL DEFAULT '0',
+                      lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      PRIMARY KEY (id),
+                      UNIQUE INDEX name_UNIQUE (name ASC))
+                    ENGINE = InnoDB;", 
+                database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE IF NOT EXISTS flaggroup_assoc (
+                      id CHAR(36) NOT NULL,
+                      flaggroup_id CHAR(36) NOT NULL,
+                      flag VARCHAR(45) NOT NULL,
+                      lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      PRIMARY KEY (id),
+                      UNIQUE INDEX assoc_unique (flaggroup_id ASC, flag ASC),
+                      CONSTRAINT FK_flaggroup
+                        FOREIGN KEY (flaggroup_id)
+                        REFERENCES flaggroup (id)
+                        ON DELETE CASCADE)
+                    ENGINE = InnoDB;", 
+                database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE IF NOT EXISTS flaggroup_channel (
+                      id CHAR(36) NOT NULL,
+                      flaggroup_id CHAR(36) NOT NULL,
+                      channel_id CHAR(36) NOT NULL,
+                      protected INT(1) NOT NULL DEFAULT '0',
+                      lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      PRIMARY KEY (id),
+                      UNIQUE INDEX flaggroup_channel_UNIQUE (flaggroup_id ASC, channel_id ASC),
+                      INDEX fk_flaggroup_channel_channelnew1_idx (channel_id ASC),
+                      CONSTRAINT fk_flaggroup_channel_channelnew1
+                        FOREIGN KEY (channel_id)
+                        REFERENCES channelnew (id)
+                        ON DELETE NO ACTION
+                        ON UPDATE NO ACTION,
+                      CONSTRAINT fk_flaggroup_channel_flaggroup1
+                        FOREIGN KEY (flaggroup_id)
+                        REFERENCES flaggroup (id)
+                        ON DELETE NO ACTION
+                        ON UPDATE NO ACTION)
+                    ENGINE = InnoDB;",
+                database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE IF NOT EXISTS flaggroup_user (
+                      id CHAR(36) NOT NULL,
+                      flaggroup_id CHAR(36) NOT NULL,
+                      nickname VARCHAR(255) NOT NULL,
+                      username VARCHAR(255) NOT NULL,
+                      hostname VARCHAR(255) NOT NULL,
+                      account VARCHAR(45) NOT NULL,
+                      protected INT(1) NOT NULL DEFAULT '0',
+                      lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      PRIMARY KEY (id),
+                      INDEX FK_flaggroup_idx (flaggroup_id ASC),
+                      CONSTRAINT FK_flaggroup_user
+                        FOREIGN KEY (flaggroup_id)
+                        REFERENCES flaggroup (id)
+                        ON DELETE CASCADE
+                        ON UPDATE CASCADE)
+                    ENGINE = InnoDB;", 
+                database);
+        }
+
+        /// <summary>
+        ///     The do single schema change.
+        /// </summary>
+        /// <param name="command">
+        ///     The command.
+        /// </param>
+        /// <param name="database">
+        ///     The database.
+        /// </param>
+        private void DoSingleSchemaChange(string command, ISession database)
+        {
+            this.logger.InfoFormat("Running: {0}", command);
+            database.CreateSQLQuery(command).ExecuteUpdate();
+        }
+
+        /// <summary>
+        ///     do something in a transaction.
+        /// </summary>
+        /// <param name="action">
+        ///     The action.
         /// </param>
         private void DoTransactionally(Action<ISession> action)
         {
@@ -137,16 +327,16 @@ namespace Helpmebot.Client
         }
 
         /// <summary>
-        /// The migrate channels.
+        ///     The migrate channels.
         /// </summary>
         /// <param name="database">
-        /// The database.
+        ///     The database.
         /// </param>
         private void MigrateSitesAndChannels(ISession database)
         {
             this.logger.Info("Clearing old sites and channels");
 
-            var deleteChannels = database.CreateSQLQuery("DELETE FROM channelnew");
+            var deleteChannels = database.CreateSQLQuery("DELETE FROM channel");
             deleteChannels.ExecuteUpdate();
 
             var deleteSites = database.CreateSQLQuery("DELETE FROM mediawikisite");
@@ -172,12 +362,12 @@ FROM site;");
                 var oldSite = (object[])obj;
 
                 var newSite = new MediaWikiSite
-                {
-                    Username = (string)oldSite[1],
-                    Password = (string)oldSite[2],
-                    Api = (string)oldSite[3],
-                    Name = (string)oldSite[4],
-                };
+                                  {
+                                      Username = (string)oldSite[1], 
+                                      Password = (string)oldSite[2], 
+                                      Api = (string)oldSite[3], 
+                                      Name = (string)oldSite[4]
+                                  };
 
                 database.Save(newSite);
 
@@ -245,7 +435,7 @@ SELECT
         WHEN 'true'  THEN 1
         ELSE              0
         END             longuserinfo
-FROM channel c;");
+FROM channel_old c;");
 
             var channels = legacyChannels.List();
 
@@ -256,34 +446,34 @@ FROM channel c;");
                 var oldSiteId = int.Parse((string)oldChannel[4]);
                 var baseWiki = lookupCache.ContainsKey(oldSiteId) ? lookupCache[oldSiteId] : null;
 
-                bool enabled = (int)oldChannel[2] == 1;
+                var enabled = (int)oldChannel[2] == 1;
 
-                bool isSilenced = (long)oldChannel[3] == 1;
-                bool hedgehogCurled = (long)oldChannel[5] == 1;
-                bool autoLinkEnabled = (long)oldChannel[6] == 1;
-                bool useLongUserInfo = (long)oldChannel[7] == 1;
+                var isSilenced = (long)oldChannel[3] == 1;
+                var hedgehogCurled = (long)oldChannel[5] == 1;
+                var autoLinkEnabled = (long)oldChannel[6] == 1;
+                var useLongUserInfo = (long)oldChannel[7] == 1;
 
                 var newChannel = new Channel
-                {
-                    Name = (string)oldChannel[0],
-                    Password = (string)oldChannel[1],
-                    Enabled = enabled,
-                    IsSilenced = isSilenced,
-                    HedgehogCurled = hedgehogCurled,
-                    AutoLinkEnabled = autoLinkEnabled,
-                    UseLongUserInfo = useLongUserInfo,
-                    BaseWiki = baseWiki
-                };
+                                     {
+                                         Name = (string)oldChannel[0], 
+                                         Password = (string)oldChannel[1], 
+                                         Enabled = enabled, 
+                                         IsSilenced = isSilenced, 
+                                         HedgehogCurled = hedgehogCurled, 
+                                         AutoLinkEnabled = autoLinkEnabled, 
+                                         UseLongUserInfo = useLongUserInfo, 
+                                         BaseWiki = baseWiki
+                                     };
 
                 database.Save(newChannel);
             }
         }
 
         /// <summary>
-        /// The recreate permissions.
+        ///     The recreate permissions.
         /// </summary>
         /// <param name="database">
-        /// The database.
+        ///     The database.
         /// </param>
         private void RecreatePermissions(ISession database)
         {
@@ -300,13 +490,23 @@ FROM channel c;");
             this.logger.InfoFormat("Creating {0}", owner);
             database.Save(owner);
 
-            var superuser = new FlagGroup { IsProtected = true, Name = "LegacySuperuser", Flags = new List<FlagGroupAssoc>() };
+            var superuser = new FlagGroup
+                                {
+                                    IsProtected = true, 
+                                    Name = "LegacySuperuser", 
+                                    Flags = new List<FlagGroupAssoc>()
+                                };
             var superuserFlags = new[] { "A", "P", "S", "B", "C" };
             superuserFlags.Apply(x => superuser.Flags.Add(new FlagGroupAssoc { Flag = x, FlagGroup = superuser }));
             this.logger.InfoFormat("Creating {0}", superuser);
             database.Save(superuser);
 
-            var advanced = new FlagGroup { IsProtected = true, Name = "LegacyAdvanced", Flags = new List<FlagGroupAssoc>() };
+            var advanced = new FlagGroup
+                               {
+                                   IsProtected = true, 
+                                   Name = "LegacyAdvanced", 
+                                   Flags = new List<FlagGroupAssoc>()
+                               };
             var advancedFlags = new[] { "P", "B", "C" };
             advancedFlags.Apply(x => advanced.Flags.Add(new FlagGroupAssoc { Flag = x, FlagGroup = advanced }));
             this.logger.InfoFormat("Creating {0}", advanced);
@@ -320,11 +520,11 @@ FROM channel c;");
 
             var stwalkerster = new FlagGroupUser
                                    {
-                                       Account = "stwalkerster",
-                                       Username = "*",
-                                       Nickname = "*",
-                                       Hostname = "*",
-                                       FlagGroup = owner,
+                                       Account = "stwalkerster", 
+                                       Username = "*", 
+                                       Nickname = "*", 
+                                       Hostname = "*", 
+                                       FlagGroup = owner, 
                                        Protected = true
                                    };
             this.logger.InfoFormat("Creating user {0}", stwalkerster);
@@ -348,7 +548,7 @@ FROM channel c;");
 
             var groupUsers = sqlQuery.List();
 
-            Dictionary<string, FlagGroup> flagGroups = database.QueryOver<FlagGroup>().List().ToDictionary(x => x.Id.ToString());
+            var flagGroups = database.QueryOver<FlagGroup>().List().ToDictionary(x => x.Id.ToString());
 
             foreach (var obj in groupUsers)
             {
@@ -356,11 +556,11 @@ FROM channel c;");
 
                 var groupUser = new FlagGroupUser
                                     {
-                                        Nickname = (string)oldGroupUser[0],
-                                        Username = (string)oldGroupUser[1],
-                                        Hostname = (string)oldGroupUser[2],
-                                        Account = "*",
-                                        Protected = false,
+                                        Nickname = (string)oldGroupUser[0], 
+                                        Username = (string)oldGroupUser[1], 
+                                        Hostname = (string)oldGroupUser[2], 
+                                        Account = "*", 
+                                        Protected = false, 
                                         FlagGroup = flagGroups[(string)oldGroupUser[3]]
                                     };
 

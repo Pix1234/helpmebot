@@ -31,7 +31,7 @@ namespace Helpmebot.Persistence.Mappings
         /// </summary>
         public ChannelMap()
         {
-            this.Table("channelnew");
+            this.Table("channel");
             this.Id(x => x.Id, "id").GeneratedBy.GuidComb();
             this.Map(x => x.Name, "name");
             this.Map(x => x.Password, "password");

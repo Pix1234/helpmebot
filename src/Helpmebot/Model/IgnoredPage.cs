@@ -22,7 +22,7 @@ namespace Helpmebot.Model
     /// <summary>
     /// The ignored page.
     /// </summary>
-    public class IgnoredPage : EntityBase
+    public class IgnoredPage : GuidEntityBase
     {
         #region Public Properties
 
