@@ -46,6 +46,10 @@ namespace Helpmebot.Startup.Installers
 
     using helpmebot6.Commands;
 
+    using Helpmebot.Services.Geolocation;
+    using Helpmebot.Services.Interfaces;
+    using Helpmebot.Services.UrlShortening;
+
     /// <summary>
     /// The main installer.
     /// </summary>
@@ -143,6 +147,10 @@ namespace Helpmebot.Startup.Installers
                 Component.For<SupportHelper>(),
                 commands, 
                 legacyCommands);
+
+            container.Register(
+                Component.For<IUrlShorteningService>().ImplementedBy<GooglUrlShorteningService>(),
+                Component.For<IGeolocationService>().ImplementedBy<MaxMindGeolocationService>());
 
             Type networkClientType = configurationHelper.IrcConfiguration.Ssl
                                          ? typeof(SslNetworkClient)

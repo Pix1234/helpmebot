@@ -24,6 +24,8 @@ namespace helpmebot6.Commands
     using System.Data;
     using System.Linq;
 
+    using Castle.Core.Internal;
+
     using Helpmebot.Attributes;
     using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
@@ -31,7 +33,6 @@ namespace helpmebot6.Commands
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
 
-    using NHibernate.Linq;
 
     /// <summary>
     /// Controls the newbie welcomer

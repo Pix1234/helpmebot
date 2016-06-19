@@ -22,6 +22,7 @@ namespace Helpmebot.Services
     using System.Collections.Generic;
     using System.Linq;
 
+    using Castle.Core.Internal;
     using Castle.Core.Logging;
 
     using Helpmebot.ExtensionMethods;
