@@ -19,6 +19,7 @@ namespace Helpmebot.Monitoring
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net;
     using System.Threading;
@@ -117,6 +118,8 @@ namespace Helpmebot.Monitoring
             this.key = category.Keyword;
             this.sleepTime = category.SleepTime;
 
+            this.logger.DebugFormat("Initial sleep time is {0}", this.sleepTime);
+
             this.RegisterInstance();
 
             this.watcherThread = new Thread(this.WatcherThreadMethod);
@@ -156,7 +159,7 @@ namespace Helpmebot.Monitoring
             set
             {
                 this.sleepTime = value;
-                this.logger.Info("Restarting watcher...");
+                this.logger.InfoFormat("Restarting watcher due to time change (new time {0})...", value);
                 this.watcherThread.Abort();
                 Thread.Sleep(500);
                 this.watcherThread = new Thread(this.WatcherThreadMethod);
@@ -277,8 +280,23 @@ namespace Helpmebot.Monitoring
             {
                 while (true)
                 {
-                    Thread.Sleep(this.SleepTime * 1000);
+                    this.logger.DebugFormat("Sleeping thread for {0} seconds", this.SleepTime);
+                    int remaining = this.SleepTime * 1000;
 
+                    // iteratively sleep (yuck) until we've got less than a second of our sleep remaining - sounds like a good enough tolerance for me.
+                    while (remaining > 1000)
+                    {
+                        var millisecondsTimeout = remaining / 2;
+                        var stopwatch = Stopwatch.StartNew();
+                        Thread.Sleep(millisecondsTimeout);
+                        stopwatch.Stop();
+
+                        remaining -= (int)stopwatch.ElapsedMilliseconds;
+                        this.logger.DebugFormat("Thread has woken after {0}ms, with {1} ms remaining", stopwatch.ElapsedMilliseconds, remaining);
+                    }
+
+                    this.logger.DebugFormat("Thread wakeup", this.SleepTime);
+                    
                     try
                     {
                         var categoryCheckResult = this.DoCategoryCheck();
