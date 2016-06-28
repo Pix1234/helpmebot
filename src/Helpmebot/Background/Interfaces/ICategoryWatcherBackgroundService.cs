@@ -20,6 +20,8 @@
 
 namespace Helpmebot.Background.Interfaces
 {
+    using System.Collections.Generic;
+
     using Castle.Core;
 
     using Helpmebot.Model;
@@ -44,5 +46,14 @@ namespace Helpmebot.Background.Interfaces
         /// The watcher.
         /// </param>
         void EnableWatcher(CategoryWatcher watcher);
+
+        /// <summary>
+        /// Triggers an update for a category watcher in a specific channel
+        /// </summary>
+        /// <param name="keyword">The keyword identifying the category watcher</param>
+        /// <param name="channel">The channel identifying the category watcher</param>
+        void TriggerCategoryWatcherUpdate(string keyword, Channel channel);
+
+        IDictionary<string, CategoryWatcher> GetWatchersForChannel(Channel channel);
     }
 }

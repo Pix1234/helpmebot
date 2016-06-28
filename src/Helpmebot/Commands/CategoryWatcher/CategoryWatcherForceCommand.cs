@@ -24,11 +24,11 @@ namespace Helpmebot.Commands.CategoryWatcher
     using Castle.Core.Logging;
 
     using Helpmebot.Attributes;
+    using Helpmebot.Background.Interfaces;
     using Helpmebot.Commands.CommandUtilities;
     using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.Model.Interfaces;
-    using Helpmebot.Monitoring;
 
     using NHibernate;
 
@@ -41,6 +41,8 @@ namespace Helpmebot.Commands.CategoryWatcher
     [CommandFlag(Model.Flag.Standard)]
     public class CategoryWatcherForceCommand : CommandBase
     {
+        private readonly ICategoryWatcherBackgroundService categoryWatcherBackgroundService;
+
         #region Constructors and Destructors
 
         /// <summary>
@@ -64,15 +66,20 @@ namespace Helpmebot.Commands.CategoryWatcher
         /// <param name="commandServiceHelper">
         /// The command Service Helper.
         /// </param>
+        /// <param name="categoryWatcherBackgroundService">
+        /// The category watcher background service
+        /// </param>
         public CategoryWatcherForceCommand(
             string commandSource, 
             IUser user, 
             IEnumerable<string> arguments, 
             ILogger logger, 
             ISession databaseSession, 
-            ICommandServiceHelper commandServiceHelper)
+            ICommandServiceHelper commandServiceHelper,
+            ICategoryWatcherBackgroundService categoryWatcherBackgroundService)
             : base(commandSource, user, arguments, logger, databaseSession, commandServiceHelper)
         {
+            this.categoryWatcherBackgroundService = categoryWatcherBackgroundService;
         }
 
         #endregion
@@ -89,9 +96,9 @@ namespace Helpmebot.Commands.CategoryWatcher
         {
             var commandName = this.CommandMessage.CommandName;
 
-            var message = WatcherController.Instance().ForceUpdate(commandName, this.CommandSource);
-
-            yield return new CommandResponse { Message = message };
+            this.categoryWatcherBackgroundService.TriggerCategoryWatcherUpdate(commandName, this.CommandChannel);
+            
+            yield break;
         }
 
         #endregion

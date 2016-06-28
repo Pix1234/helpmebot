@@ -18,6 +18,8 @@ namespace Helpmebot.Background
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Globalization;
     using System.Linq;
     using System.Text;
     using System.Threading;
@@ -25,6 +27,7 @@ namespace Helpmebot.Background
     using Castle.Core.Logging;
 
     using Helpmebot.Background.Interfaces;
+    using Helpmebot.Commands.CategoryWatcher;
     using Helpmebot.ExtensionMethods;
     using Helpmebot.IRC.Interfaces;
     using Helpmebot.Model;
@@ -53,9 +56,13 @@ namespace Helpmebot.Background
 
         private readonly IUrlShorteningService urlShorteningService;
 
+        private readonly ICommandParser commandParser;
+
         private readonly SimplePriorityQueue<ActiveCategoryWatcher> schedule;
 
         private readonly Dictionary<CategoryWatcher, ActiveCategoryWatcher> activeLookup;
+
+        private readonly Dictionary<string, Dictionary<string, CategoryWatcher>> channelLookup;
 
         private bool stopping;
 
@@ -77,22 +84,29 @@ namespace Helpmebot.Background
         /// <param name="urlShorteningService">
         /// The URL Shortening service
         /// </param>
+        /// <param name="commandParser">
+        /// The command parser
+        /// </param>
         public CategoryWatcherBackgroundService(
             IIrcClient ircClient,
             ISession databaseSession,
             ILogger logger,
             IIgnoredPagesRepository ignoredPagesRepository,
-            IUrlShorteningService urlShorteningService)
+            IUrlShorteningService urlShorteningService,
+            ICommandParser commandParser)
         {
             this.ircClient = ircClient;
             this.databaseSession = databaseSession;
             this.logger = logger;
             this.ignoredPagesRepository = ignoredPagesRepository;
             this.urlShorteningService = urlShorteningService;
+            this.commandParser = commandParser;
 
             this.schedulerThread = new Thread(this.Scheduler);
             this.schedule = new SimplePriorityQueue<ActiveCategoryWatcher>();
+
             this.activeLookup = new Dictionary<CategoryWatcher, ActiveCategoryWatcher>();
+            this.channelLookup = new Dictionary<string, Dictionary<string, CategoryWatcher>>();
         }
 
         /// <summary>
@@ -108,6 +122,7 @@ namespace Helpmebot.Background
             {
                 this.schedule.Remove(activeWatcher);
                 this.activeLookup.Remove(watcher);
+                this.channelLookup[watcher.Channel.Name].Remove(watcher.Keyword);
             }
         }
 
@@ -124,6 +139,13 @@ namespace Helpmebot.Background
             {
                 var activeCategoryWatcher = new ActiveCategoryWatcher(watcher);
                 this.activeLookup.Add(watcher, activeCategoryWatcher);
+
+                if (!this.channelLookup.ContainsKey(watcher.Channel.Name))
+                {
+                    this.channelLookup.Add(watcher.Channel.Name, new Dictionary<string, CategoryWatcher>());
+                }
+                this.channelLookup[watcher.Channel.Name].Add(watcher.Keyword, watcher);
+
                 this.schedule.Enqueue(activeCategoryWatcher, activeCategoryWatcher.NextTrigger.Ticks);
             }
         }
@@ -150,6 +172,37 @@ namespace Helpmebot.Background
         }
 
         /// <summary>
+        /// Triggers an update for a category watcher in a specific channel
+        /// </summary>
+        /// <param name="keyword">The keyword identifying the category watcher</param>
+        /// <param name="channel">The channel identifying the category watcher</param>
+        public void TriggerCategoryWatcherUpdate(string keyword, Channel channel)
+        {
+            Dictionary<string, CategoryWatcher> channelWatchers;
+            if (!this.channelLookup.TryGetValue(channel.Name, out channelWatchers))
+            {
+                return;
+            }
+
+            CategoryWatcher watcher;
+            if (channelWatchers.TryGetValue(keyword, out watcher))
+            {
+                this.PerformCategoryUpdate(watcher);
+            }
+        }
+
+        public IDictionary<string, CategoryWatcher> GetWatchersForChannel(Channel channel)
+        {
+            Dictionary<string, CategoryWatcher> lookupResult;
+            if (this.channelLookup.TryGetValue(channel.Name, out lookupResult))
+            {
+                return new ReadOnlyDictionary<string, CategoryWatcher>(lookupResult);
+            }
+
+            return new ReadOnlyDictionary<string, CategoryWatcher>(new Dictionary<string, CategoryWatcher>());
+        }
+
+        /// <summary>
         /// The initialise watchers.
         /// </summary>
         private void InitialiseWatchers()
@@ -162,6 +215,9 @@ namespace Helpmebot.Background
             foreach (var watcher in categoryWatchers)
             {
                 this.EnableWatcher(watcher);
+
+                // FIXME: this will duplicatekeyexception because a command is already registered
+                this.commandParser.RegisterCommand(watcher.Keyword.ToLower(CultureInfo.InvariantCulture), typeof(CategoryWatcherForceCommand));
             }
         }
 
