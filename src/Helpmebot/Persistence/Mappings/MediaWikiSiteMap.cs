@@ -39,6 +39,7 @@ namespace Helpmebot.Persistence.Mappings
             this.Map(x => x.Password, "password");
             this.Map(x => x.Api, "api");
             this.Map(x => x.Name, "name");
+            this.Map(x => x.ArticlePath, "articlepath");
         }
 
         #endregion

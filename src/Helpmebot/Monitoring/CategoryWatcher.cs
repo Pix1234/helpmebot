@@ -4,12 +4,10 @@
 //   it under the terms of the GNU General Public License as published by
 //   the Free Software Foundation, either version 3 of the License, or
 //   (at your option) any later version.
-//   
 //   Helpmebot is distributed in the hope that it will be useful,
 //   but WITHOUT ANY WARRANTY; without even the implied warranty of
 //   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //   GNU General Public License for more details.
-//   
 //   You should have received a copy of the GNU General Public License
 //   along with Helpmebot.  If not, see http://www.gnu.org/licenses/ .
 // </copyright>
@@ -28,7 +26,6 @@ namespace Helpmebot.Monitoring
 
     using Helpmebot.Configuration.XmlSections.Interfaces;
     using Helpmebot.ExtensionMethods;
-    using Helpmebot.Legacy.Configuration;
     using Helpmebot.Model;
     using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Threading;
@@ -40,8 +37,6 @@ namespace Helpmebot.Monitoring
     /// </summary>
     public class CategoryWatcher : IThreadedSystem
     {
-        #region Fields
-
         /// <summary>
         ///     The category.
         /// </summary>
@@ -82,10 +77,6 @@ namespace Helpmebot.Monitoring
         /// </summary>
         private Thread watcherThread;
 
-        #endregion
-
-        #region Constructors and Destructors
-
         /// <summary>
         /// Initialises a new instance of the <see cref="CategoryWatcher"/> class.
         /// </summary>
@@ -95,14 +86,20 @@ namespace Helpmebot.Monitoring
         /// <param name="ignoredPagesRepository">
         /// The ignored Pages Repository.
         /// </param>
+        /// <param name="coreConfiguration">
+        /// The core Configuration.
+        /// </param>
+        /// <param name="databaseSession">
+        /// The database Session.
+        /// </param>
         /// <param name="logger">
         /// The logger.
         /// </param>
         public CategoryWatcher(
             WatchedCategory category, 
-            IIgnoredPagesRepository ignoredPagesRepository,
-            ICoreConfiguration coreConfiguration,
-            ISession databaseSession,
+            IIgnoredPagesRepository ignoredPagesRepository, 
+            ICoreConfiguration coreConfiguration, 
+            ISession databaseSession, 
             ILogger logger)
         {
             this.watchedCategory = category;
@@ -128,10 +125,6 @@ namespace Helpmebot.Monitoring
             this.ignoredPagesRepository = ignoredPagesRepository;
         }
 
-        #endregion
-
-        #region Public Events
-
         /// <summary>
         ///     The category has items event.
         /// </summary>
@@ -141,10 +134,6 @@ namespace Helpmebot.Monitoring
         ///     The thread fatal error event.
         /// </summary>
         public event EventHandler ThreadFatalErrorEvent;
-
-        #endregion
-
-        #region Public Properties
 
         /// <summary>
         ///     Gets or sets the time to sleep, in seconds.
@@ -178,10 +167,6 @@ namespace Helpmebot.Monitoring
             }
         }
 
-        #endregion
-
-        #region Public Methods and Operators
-
         /// <summary>
         ///     The do category check.
         /// </summary>
@@ -190,24 +175,8 @@ namespace Helpmebot.Monitoring
         /// </returns>
         public IEnumerable<string> DoCategoryCheck()
         {
-            this.logger.Info("Getting items in category " + this.key);
-
-            IEnumerable<string> pages = new List<string>();
-            try
-            {
-                // Create the XML Reader
-                pages = this.site.GetPagesInCategory(this.category);
-            }
-            catch (Exception ex)
-            {
-                this.logger.Error("Error contacting API (" + this.site.Api + ") ", ex);
-            }
-
-            IEnumerable<string> pageList = pages;
-
-            pageList = this.RemoveBlacklistedItems(pageList).ToList();
-
-            return pageList;
+            // MIGRATED
+            return new List<string>();
         }
 
         /// <summary>
@@ -250,26 +219,6 @@ namespace Helpmebot.Monitoring
             return this.key;
         }
 
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// The remove blacklisted items.
-        /// </summary>
-        /// <param name="pageList">
-        /// The page list.
-        /// </param>
-        /// <returns>
-        /// The <see cref="List{String}"/>.
-        /// </returns>
-        private IEnumerable<string> RemoveBlacklistedItems(IEnumerable<string> pageList)
-        {
-            List<string> ignoredPages = this.ignoredPagesRepository.GetIgnoredPages().ToList();
-
-            return pageList.Where(x => !ignoredPages.Contains(x));
-        }
-
         /// <summary>
         ///     The watcher thread method.
         /// </summary>
@@ -292,16 +241,19 @@ namespace Helpmebot.Monitoring
                         stopwatch.Stop();
 
                         remaining -= (int)stopwatch.ElapsedMilliseconds;
-                        this.logger.DebugFormat("Thread has woken after {0}ms, with {1} ms remaining", stopwatch.ElapsedMilliseconds, remaining);
+                        this.logger.DebugFormat(
+                            "Thread has woken after {0}ms, with {1} ms remaining", 
+                            stopwatch.ElapsedMilliseconds, 
+                            remaining);
                     }
 
                     this.logger.DebugFormat("Thread wakeup", this.SleepTime);
-                    
+
                     try
                     {
                         var categoryCheckResult = this.DoCategoryCheck();
                         IEnumerable<string> categoryResults = categoryCheckResult.ToList();
-                        
+
                         if (categoryResults.Any())
                         {
                             var onCategoryHasItemsEvent = this.CategoryHasItemsEvent;
@@ -314,7 +266,7 @@ namespace Helpmebot.Monitoring
                     catch (WebException e)
                     {
                         this.logger.Warn(e.Message, e);
-                    }                    
+                    }
                 }
             }
             catch (ThreadAbortException)
@@ -328,7 +280,5 @@ namespace Helpmebot.Monitoring
 
             this.logger.Warn("Category watcher for '" + this.key + "' died.");
         }
-
-        #endregion
     }
 }

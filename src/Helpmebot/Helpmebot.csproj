@@ -173,8 +173,10 @@
     <Compile Include="Model\ActiveCategoryWatcher.cs" />
     <Compile Include="Model\CachedItem.cs" />
     <Compile Include="Model\CategoryWatcher.cs" />
+    <Compile Include="Model\CategoryWatcherItem.cs" />
     <Compile Include="Model\FlagGroupChannel.cs" />
     <Compile Include="Model\ResponseMessage.cs" />
+    <Compile Include="Persistence\Mappings\CategoryWatcherItemMap.cs" />
     <Compile Include="Persistence\Mappings\CategoryWatcherMap.cs" />
     <Compile Include="Persistence\Mappings\FlagGroupChannelMap.cs" />
     <Compile Include="Repositories\ChannelRepository.cs" />

@@ -130,6 +130,7 @@ namespace Helpmebot.Client
             this.DoSingleSchemaChange("DROP TABLE watcher;", database);
             this.DoSingleSchemaChange("DROP TABLE channelconfig;", database);
             this.DoSingleSchemaChange("DROP TABLE configuration;", database);
+            this.DoSingleSchemaChange("DROP TABLE categoryitems;", database);
         }
 
         /// <summary>
@@ -317,6 +318,35 @@ namespace Helpmebot.Client
 
             this.DoSingleSchemaChange(
                 "CREATE UNIQUE INDEX categorywatcher_keyword_uindex ON helpmebot_devel.categorywatcher(channel, keyword)",
+                database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE categorywatcher_items
+                    (
+                        id CHAR(36) PRIMARY KEY NOT NULL,
+                        categorywatcher CHAR(36) NOT NULL,
+                        touched TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                        title VARCHAR(255) NOT NULL,
+                        CONSTRAINT categorywatcher_items_categorywatcher_id_fk FOREIGN KEY (categorywatcher) REFERENCES categorywatcher (id) ON DELETE CASCADE ON UPDATE CASCADE
+                    );",
+                database);
+
+            this.DoSingleSchemaChange(
+                "CREATE UNIQUE INDEX categorywatcheritems_watchertitle_uindex ON categorywatcher_items (categorywatcher, title);", 
+                database);
+
+            this.DoSingleSchemaChange(@"ALTER TABLE mediawikisite ADD articlepath VARCHAR(255) NULL;", database);
+
+            this.DoSingleSchemaChange(
+                @"ALTER TABLE categorywatcher ADD itemSingular VARCHAR(255) DEFAULT 'page' NOT NULL;",
+                database);
+
+            this.DoSingleSchemaChange(
+                @"ALTER TABLE categorywatcher ADD itemPlural VARCHAR(255) DEFAULT 'pages' NOT NULL;",
+                database);
+
+            this.DoSingleSchemaChange(
+                @"ALTER TABLE categorywatcher ADD itemAction VARCHAR(255) DEFAULT 'in category {0}' NOT NULL",
                 database);
         }
 

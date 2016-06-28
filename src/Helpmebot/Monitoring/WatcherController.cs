@@ -26,7 +26,6 @@ namespace Helpmebot.Monitoring
     using Castle.Core.Logging;
 
     using Helpmebot.Commands.CategoryWatcher;
-    using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Configuration.XmlSections.Interfaces;
     using Helpmebot.IRC.Interfaces;
     using Helpmebot.Legacy.Configuration;
@@ -204,44 +203,6 @@ namespace Helpmebot.Monitoring
         }
 
         /// <summary>
-        /// Adds the watcher to channel.
-        /// </summary>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <param name="channel">
-        /// The channel.
-        /// </param>
-        /// <returns>
-        /// The bool
-        /// </returns>
-        public bool AddWatcherToChannel(string keyword, string channel)
-        {
-            string channelId = LegacyConfig.Singleton().GetChannelId(channel);
-            int watcherId = this.GetWatcherId(keyword);
-
-            var countCommand =
-                new MySqlCommand(
-                    "SELECT COUNT(*) FROM channelwatchers WHERE cw_channel = @channel AND cw_watcher = @watcher;");
-            countCommand.Parameters.AddWithValue("@channel", channelId);
-            countCommand.Parameters.AddWithValue("@watcher", watcherId);
-            string count = this.legacyDatabase.ExecuteScalarSelect(countCommand);
-
-            if (count == "0")
-            {
-                var command = new MySqlCommand("INSERT INTO channelwatchers VALUES ( @channelid, @watcherid );");
-                command.Parameters.AddWithValue("@channelid", channelId);
-                command.Parameters.AddWithValue("@watcherid", watcherId.ToString(CultureInfo.InvariantCulture));
-
-                this.legacyDatabase.ExecuteCommand(command);
-
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// Forces the update.
         /// </summary>
         /// <param name="key">
@@ -269,26 +230,6 @@ namespace Helpmebot.Monitoring
         }
 
         /// <summary>
-        /// The get delay.
-        /// </summary>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <returns>
-        /// The <see cref="int"/>.
-        /// </returns>
-        public int GetDelay(string keyword)
-        {
-            CategoryWatcher cw = this.GetWatcher(keyword);
-            if (cw != null)
-            {
-                return cw.SleepTime;
-            }
-
-            return 0;
-        }
-
-        /// <summary>
         ///     Gets the keywords.
         /// </summary>
         /// <returns>
@@ -297,103 +238,6 @@ namespace Helpmebot.Monitoring
         public Dictionary<string, CategoryWatcher>.KeyCollection GetKeywords()
         {
             return this.watchers.Keys;
-        }
-
-        /// <summary>
-        /// Determines whether the specified word is a valid keyword.
-        /// </summary>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the specified word is a valid keyword; otherwise, <c>false</c>.
-        /// </returns>
-        public bool IsValidKeyword(string keyword)
-        {
-            return this.watchers.ContainsKey(keyword);
-        }
-
-        /// <summary>
-        /// Determines whether [is watcher in channel] [the specified channel].
-        /// </summary>
-        /// <param name="channel">
-        /// The channel.
-        /// </param>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if [is watcher in channel] [the specified channel]; otherwise, <c>false</c>.
-        /// </returns>
-        public bool IsWatcherInChannel(string channel, string keyword)
-        {
-            var command = new MySqlCommand("SELECT COUNT(*) FROM channelwatchers INNER JOIN channel ON cw_channel = channel_id INNER JOIN watcher ON cw_watcher = watcher_id WHERE channel_name = @channel AND watcher_keyword = @keyword;");
-            command.Parameters.AddWithValue("@channel", channel);
-            command.Parameters.AddWithValue("@keyword", keyword);
-            string count = this.legacyDatabase.ExecuteScalarSelect(command);
-            return count != "0";
-        }
-
-        /// <summary>
-        /// Removes the watcher from channel.
-        /// </summary>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <param name="channel">
-        /// The channel.
-        /// </param>
-        public void RemoveWatcherFromChannel(string keyword, string channel)
-        {
-            string channelId = LegacyConfig.Singleton().GetChannelId(channel);
-            int watcherId = this.GetWatcherId(keyword);
-
-            var deleteCommand =
-                new MySqlCommand("DELETE FROM channelwatchers WHERE cw_channel = @channel AND cw_watcher = @watcher;");
-            deleteCommand.Parameters.AddWithValue("@channel", channelId);
-            deleteCommand.Parameters.AddWithValue("@watcher", watcherId);
-            this.legacyDatabase.ExecuteCommand(deleteCommand);
-        }
-
-        /// <summary>
-        /// Sets the delay.
-        /// </summary>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <param name="newDelay">
-        /// The new delay.
-        /// </param>
-        /// <param name="messageContext">
-        /// The message Context.
-        /// </param>
-        /// <returns>
-        /// The <see cref="CommandResponseHandler"/>
-        /// </returns>
-        public CommandResponseHandler SetDelay(string keyword, int newDelay, object messageContext)
-        {
-            if (newDelay < 1)
-            {
-                string message = this.messageService.RetrieveMessage("delayTooShort", messageContext, null);
-                return new CommandResponseHandler(message);
-            }
-
-            CategoryWatcher cw = this.GetWatcher(keyword);
-            if (cw != null)
-            {
-                var command = new MySqlCommand("UPDATE watcher SET watcher_sleeptime = @value WHERE watcher_keyword = @name LIMIT 1;");
-
-                command.Parameters.AddWithValue("@value", newDelay.ToString(CultureInfo.InvariantCulture));
-                command.Parameters.AddWithValue("@name", keyword);
-
-                this.legacyDatabase.ExecuteCommand(command);
-
-                cw.SleepTime = newDelay;
-                return
-                    new CommandResponseHandler(this.messageService.RetrieveMessage(Messages.Done, messageContext, null));
-            }
-
-            return new CommandResponseHandler();
         }
 
         #endregion
@@ -411,54 +255,7 @@ namespace Helpmebot.Monitoring
         /// </param>
         private void UpdateDatabaseTable(IEnumerable<string> items, string keyword)
         {
-            var newItems = new List<string>();
-            foreach (string item in items)
-            {
-                var countCommand =
-                    new MySqlCommand(
-                        "SELECT COUNT(*) FROM categoryitems WHERE item_name = @name AND item_keyword = @keyword;");
-                countCommand.Parameters.AddWithValue("@name", item);
-                countCommand.Parameters.AddWithValue("@keyword", keyword);
-
-                string databaseResult;
-                try
-                {
-                    databaseResult = this.legacyDatabase.ExecuteScalarSelect(countCommand);
-                }
-                catch (MySqlException ex)
-                {
-                    ServiceLocator.Current.GetInstance<ILogger>().Error(ex.Message, ex);
-                    databaseResult = "0";
-                }
-
-                if (databaseResult == "0")
-                {
-                    var command = new MySqlCommand("INSERT INTO categoryitems VALUES (null, @item, null, @keyword, 1);");
-                    command.Parameters.AddWithValue("@item", item);
-                    command.Parameters.AddWithValue("@keyword", keyword);
-
-                    this.legacyDatabase.ExecuteCommand(command);
-                    newItems.Add(item);
-                }
-                else
-                {
-                    var command = new MySqlCommand("UPDATE categoryitems SET item_updateflag = 1 WHERE item_keyword = @keyword AND item_name = @name LIMIT 1;");
-
-                    command.Parameters.AddWithValue("@name", item);
-                    command.Parameters.AddWithValue("@keyword", keyword);
-
-                    this.legacyDatabase.ExecuteCommand(command);
-                }
-            }
-
-            var deleteCommand =
-                new MySqlCommand("DELETE FROM categoryitems WHERE item_updateflag = 0 AND item_keyword = @keyword;");
-            deleteCommand.Parameters.AddWithValue("@update", 0);
-            deleteCommand.Parameters.AddWithValue("@keyword", keyword);
-            this.legacyDatabase.ExecuteCommand(deleteCommand);
-
-            var updateCommand = new MySqlCommand("UPDATE categoryitems SET item_updateflag = 0;");
-            this.legacyDatabase.ExecuteCommand(updateCommand);
+            // MIGRATED
         }
 
         /// <summary>
@@ -472,36 +269,7 @@ namespace Helpmebot.Monitoring
         /// </param>
         private void CategoryHasItemsEvent(object sender, CategoryHasItemsEventArgs e)
         {
-            List<string> items = e.Items.ToList();
-
-            this.UpdateDatabaseTable(items, e.Keyword);
-
-            var query =
-                new MySqlCommand(
-                    "SELECT channel_name FROM `watcher` INNER JOIN `channelwatchers` ON watcher_id = cw_watcher INNER JOIN `channel` ON channel_id = cw_channel WHERE watcher_keyword = @keyword;");
-
-            query.Parameters.AddWithValue("@keyword", e.Keyword);
-            
-            ArrayList channels = this.legacyDatabase.ExecuteSelect(query);
-            foreach (object[] item in channels)
-            {
-                var channel = (string)item[0];
-
-                // FIXME: servicelocator database
-                // FIXME: use repository
-                var db = ServiceLocator.Current.GetInstance<ISession>();
-                Channel channelObject = db.QueryOver<Channel>().Where(x => x.Name == channel).SingleOrDefault();
-                if (channelObject == null)
-                {
-                    throw new ArgumentOutOfRangeException();
-                }
-                
-                string message = this.CompileMessage(items, e.Keyword, channel, false);
-                if (!channelObject.IsSilenced)
-                {
-                    this.ircClient.SendMessage(channel, message);
-                }
-            }
+            // migrated
         }
 
         /// <summary>
@@ -534,9 +302,7 @@ namespace Helpmebot.Monitoring
             //// keywordSingular
             List<string> items = itemsEnumerable.ToList();
 
-            string fakedestination = destination;
-
-            bool showWaitTime = fakedestination != string.Empty
+            bool showWaitTime = destination != string.Empty
                                 && (LegacyConfig.Singleton()["showWaitTime", destination] == "true");
 
             TimeSpan minimumWaitTime;
@@ -545,9 +311,9 @@ namespace Helpmebot.Monitoring
                 minimumWaitTime = new TimeSpan(0);
             }
 
-            bool shortenUrls = fakedestination != string.Empty
+            bool shortenUrls = destination != string.Empty
                                && (LegacyConfig.Singleton()["useShortUrlsInsteadOfWikilinks", destination] == "true");
-            bool showDelta = fakedestination != string.Empty
+            bool showDelta = destination != string.Empty
                              && (LegacyConfig.Singleton()["catWatcherShowDelta", destination] == "true");
 
             if (forceShowAll)
@@ -650,41 +416,6 @@ namespace Helpmebot.Monitoring
             }
 
             return message;
-        }
-
-        /// <summary>
-        /// The get watcher.
-        /// </summary>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <returns>
-        /// The <see cref="CategoryWatcher"/>.
-        /// </returns>
-        private CategoryWatcher GetWatcher(string keyword)
-        {
-            CategoryWatcher cw;
-            bool success = this.watchers.TryGetValue(keyword, out cw);
-            return success ? cw : null;
-        }
-
-        /// <summary>
-        /// The get watcher id.
-        /// </summary>
-        /// <param name="keyword">
-        /// The keyword.
-        /// </param>
-        /// <returns>
-        /// The <see cref="int"/>.
-        /// </returns>
-        private int GetWatcherId(string keyword)
-        {
-            if (this.watchers.ContainsKey(keyword))
-            {
-                return this.watchers[keyword].WatchedCategory.Id;
-            }
-
-            return 0;
         }
 
         #endregion

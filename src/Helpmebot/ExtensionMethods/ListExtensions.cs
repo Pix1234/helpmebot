@@ -21,6 +21,9 @@
 namespace Helpmebot.ExtensionMethods
 {
     using System.Collections.Generic;
+    using System.Linq;
+
+    using Castle.Core.Internal;
 
     /// <summary>
     /// The list extensions.
@@ -45,6 +48,45 @@ namespace Helpmebot.ExtensionMethods
             list.RemoveAt(0);
 
             return foo;
+        }
+
+        /// <summary>
+        /// The delta.
+        /// </summary>
+        /// <param name="oldList">
+        /// The old list.
+        /// </param>
+        /// <param name="newList">
+        /// The new list.
+        /// </param>
+        /// <param name="toAdd">
+        /// The to add.
+        /// </param>
+        /// <param name="toRemove">
+        /// The to remove.
+        /// </param>
+        /// <typeparam name="T">
+        /// The type of list
+        /// </typeparam>
+        /// <returns>
+        /// The <see cref="int"/>.
+        /// </returns>
+        public static int Delta<T>(
+            this List<T> oldList,
+            List<T> newList,
+            out List<T> toAdd,
+            out List<T> toRemove)
+        {
+            var toRemoveTmp = new List<T>(oldList);
+            newList.ForEach(x => toRemoveTmp.Remove(x));
+
+            var toAddTmp = new List<T>(newList);
+            oldList.ForEach(x => toAddTmp.Remove(x));
+            
+            toAdd = toAddTmp.ToList();
+            toRemove = toRemoveTmp.ToList();
+
+            return toAdd.Count + toRemove.Count;
         }
     }
 }

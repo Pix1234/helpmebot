@@ -19,13 +19,17 @@ namespace Helpmebot.Background
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading;
 
     using Castle.Core.Logging;
 
     using Helpmebot.Background.Interfaces;
+    using Helpmebot.ExtensionMethods;
     using Helpmebot.IRC.Interfaces;
     using Helpmebot.Model;
+    using Helpmebot.Repositories.Interfaces;
+    using Helpmebot.Services.Interfaces;
 
     using NHibernate;
     using NHibernate.Criterion;
@@ -39,17 +43,21 @@ namespace Helpmebot.Background
     {
         private readonly IIrcClient ircClient;
 
-        private readonly ISession session;
+        private readonly ISession databaseSession;
 
         private readonly ILogger logger;
 
+        private readonly IIgnoredPagesRepository ignoredPagesRepository;
+
         private readonly Thread schedulerThread;
 
+        private readonly IUrlShorteningService urlShorteningService;
+
+        private readonly SimplePriorityQueue<ActiveCategoryWatcher> schedule;
+
+        private readonly Dictionary<CategoryWatcher, ActiveCategoryWatcher> activeLookup;
+
         private bool stopping;
-
-        private SimplePriorityQueue<ActiveCategoryWatcher> schedule;
-
-        private Dictionary<CategoryWatcher, ActiveCategoryWatcher> activeLookup;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CategoryWatcherBackgroundService"/> class.
@@ -57,17 +65,30 @@ namespace Helpmebot.Background
         /// <param name="ircClient">
         /// The IRC Client.
         /// </param>
-        /// <param name="session">
-        /// The session.
+        /// <param name="databaseSession">
+        /// The databaseSession.
         /// </param>
         /// <param name="logger">
         /// The logger
         /// </param>
-        public CategoryWatcherBackgroundService(IIrcClient ircClient, ISession session, ILogger logger)
+        /// <param name="ignoredPagesRepository">
+        /// The ignored Pages Repository.
+        /// </param>
+        /// <param name="urlShorteningService">
+        /// The URL Shortening service
+        /// </param>
+        public CategoryWatcherBackgroundService(
+            IIrcClient ircClient,
+            ISession databaseSession,
+            ILogger logger,
+            IIgnoredPagesRepository ignoredPagesRepository,
+            IUrlShorteningService urlShorteningService)
         {
             this.ircClient = ircClient;
-            this.session = session;
+            this.databaseSession = databaseSession;
             this.logger = logger;
+            this.ignoredPagesRepository = ignoredPagesRepository;
+            this.urlShorteningService = urlShorteningService;
 
             this.schedulerThread = new Thread(this.Scheduler);
             this.schedule = new SimplePriorityQueue<ActiveCategoryWatcher>();
@@ -134,7 +155,7 @@ namespace Helpmebot.Background
         private void InitialiseWatchers()
         {
             List<CategoryWatcher> categoryWatchers =
-                this.session.CreateCriteria<CategoryWatcher>()
+                this.databaseSession.CreateCriteria<CategoryWatcher>()
                     .Add(Restrictions.Eq("Enabled", true))
                     .List<CategoryWatcher>().ToList();
 
@@ -195,9 +216,209 @@ namespace Helpmebot.Background
             }
         }
 
+        /// <summary>
+        /// The perform category update.
+        /// </summary>
+        /// <param name="categoryWatcher">
+        /// The category watcher.
+        /// </param>
         private void PerformCategoryUpdate(CategoryWatcher categoryWatcher)
         {
-            this.ircClient.SendMessage(categoryWatcher.Channel.Name, "CW update - " + categoryWatcher.Keyword);
+            var watcherPageList = this.GetWatcherPageList(categoryWatcher.Category, categoryWatcher.MediaWikiSite);
+
+            var categoryWatcherItems = this.SynchroniseDatabase(categoryWatcher, watcherPageList);
+
+            // reload the channel, since it's config could have changed.
+            this.databaseSession.Refresh(categoryWatcher.Channel);
+            this.databaseSession.Refresh(categoryWatcher);
+
+            if (!categoryWatcher.Channel.IsSilenced)
+            {
+                var message = this.CompileMessage(categoryWatcher, categoryWatcherItems);
+
+                this.ircClient.SendMessage(categoryWatcher.Channel.Name, message);
+            }
+        }
+
+        private string CompileMessage(CategoryWatcher categoryWatcher, IEnumerable<CategoryWatcherItem> categoryWatcherItems)
+        {
+            TimeSpan minimumWaitTime = new TimeSpan(0, categoryWatcher.MinimumWaitTime, 0);
+            
+            var watcherItems = categoryWatcherItems as IList<CategoryWatcherItem> ?? categoryWatcherItems.ToList();
+            
+            if (watcherItems.Any())
+            {
+                var messageFormat = this.GetMessageFormat(categoryWatcher);
+
+                var itemList =
+                    watcherItems.Select(x => this.FormatItem(categoryWatcher, x, minimumWaitTime, messageFormat)).ToList();
+
+                var pageList = string.Join(", ", itemList);
+
+                var pluralString = itemList.Count == 1 ? categoryWatcher.ItemSingular : categoryWatcher.ItemPlural;
+
+                var totalCount = categoryWatcher.MediaWikiSite.GetCategorySize(categoryWatcher.Category);
+
+                return string.Format(
+                    "{0} {1}{2}: {3}",
+                    totalCount,
+                    pluralString,
+                    string.Format(" " + categoryWatcher.ItemAction, categoryWatcher.Category).TrimEnd(' '),
+                    pageList);
+            }
+            else
+            {
+                return string.Format("0 {0} {1}.", categoryWatcher.ItemPlural, categoryWatcher.ItemAction);
+            }
+        }
+
+        private string FormatItem(
+            CategoryWatcher categoryWatcher,
+            CategoryWatcherItem x,
+            TimeSpan minimumWaitTime,
+            string messageFormat)
+        {
+            var shortUrl = string.Empty;
+
+            if (categoryWatcher.ShowShortUrl)
+            {
+                var longUrl = string.Format(categoryWatcher.MediaWikiSite.ArticlePath, x.Title);
+                shortUrl = this.urlShorteningService.Shorten(longUrl);
+            }
+
+            var waitTime = string.Empty;
+            var waiting = DateTime.Now - x.Timestamp;
+            if (categoryWatcher.ShowWaitTime && waiting > minimumWaitTime)
+            {
+                waitTime = string.Format("(waiting {0})", waiting.ToString("[d’d ’]hh’:’mm’:’ss"));
+            }
+
+            return string.Format(messageFormat, x.Title, shortUrl, waitTime);
+        }
+
+        private string GetMessageFormat(CategoryWatcher categoryWatcher)
+        {
+            StringBuilder formatBuilder = new StringBuilder();
+            bool noTrim = false;
+            if (categoryWatcher.ShowWikiLink)
+            {
+                formatBuilder.Append("[[{0}]] ");
+            }
+
+            if (categoryWatcher.ShowShortUrl)
+            {
+                formatBuilder.Append("{1} ");
+                noTrim = true;
+            }
+
+            if (categoryWatcher.ShowWaitTime)
+            {
+                formatBuilder.Append("{2}");
+                noTrim = false;
+            }
+
+            var messageFormat = formatBuilder.ToString();
+
+            if (!noTrim)
+            {
+                messageFormat = messageFormat.Trim();
+            }
+
+            return messageFormat;
+        }
+
+        /// <summary>
+        /// Synchronises the database cache of pending category items with the API list
+        /// </summary>
+        /// <param name="watcher">
+        /// The watcher.
+        /// </param>
+        /// <param name="watcherPageList">
+        /// The watcher page list.
+        /// </param>
+        private IEnumerable<CategoryWatcherItem> SynchroniseDatabase(CategoryWatcher watcher, IEnumerable<string> watcherPageList)
+        {
+            var categoryWatcherItems =
+                this.databaseSession.CreateCriteria<CategoryWatcherItem>()
+                    .Add(Restrictions.Eq("CategoryWatcher", watcher))
+                    .List<CategoryWatcherItem>()
+                    .ToDictionary(x => x.Title);
+
+            List<string> toAdd, toRemove;
+            var changes = categoryWatcherItems.Keys.ToList().Delta(watcherPageList.ToList(), out toAdd, out toRemove);
+
+            if (changes == 0)
+            {
+                // nothing to do, so carry on
+                return categoryWatcherItems.Values;
+            }
+            
+            // remove first so the database can reuse allocated space
+            foreach (var page in toRemove)
+            {
+                this.databaseSession.Delete(categoryWatcherItems[page]);
+                categoryWatcherItems.Remove(page);
+            }
+
+            foreach (var page in toAdd)
+            {
+                // TODO: look up the correct timestamp on the API.
+                var item = new CategoryWatcherItem { CategoryWatcher = watcher, Title = page, Timestamp = DateTime.Now };
+                
+                this.databaseSession.Save(item);
+
+                categoryWatcherItems.Add(page, item);
+            }
+
+            return categoryWatcherItems.Values;
+        }
+        
+        /// <summary>
+        /// Gets the valid (aka non-blacklisted pages) for the watcher specified
+        /// </summary>
+        /// <param name="category">
+        /// The category.
+        /// </param>
+        /// <param name="mediaWikiSite">
+        /// The media Wiki Site.
+        /// </param>
+        /// <returns>
+        /// List of page titles, or null on error
+        /// </returns>
+        private IEnumerable<string> GetWatcherPageList(string category, MediaWikiSite mediaWikiSite)
+        {
+            this.logger.Info("Getting items in category " + category);
+
+            IEnumerable<string> pages;
+            try
+            {
+                pages = mediaWikiSite.GetPagesInCategory(category);
+            }
+            catch (Exception ex)
+            {
+                this.logger.Error("Error contacting API (" + mediaWikiSite.Api + ") ", ex);
+                return null;
+            }
+            
+            pages = this.RemoveBlacklistedItems(pages).ToList();
+
+            return pages;
+        }
+
+        /// <summary>
+        /// The remove blacklisted items.
+        /// </summary>
+        /// <param name="pageList">
+        /// The page list.
+        /// </param>
+        /// <returns>
+        /// The <see cref="IEnumerable{String}"/>.
+        /// </returns>
+        private IEnumerable<string> RemoveBlacklistedItems(IEnumerable<string> pageList)
+        {
+            var ignoredPages = this.ignoredPagesRepository.GetIgnoredPages().ToList();
+
+            return pageList.Where(x => !ignoredPages.Contains(x));
         }
     }
 }

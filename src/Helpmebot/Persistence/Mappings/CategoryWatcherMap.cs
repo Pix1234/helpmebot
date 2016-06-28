@@ -42,6 +42,9 @@ namespace Helpmebot.Persistence.Mappings
             this.Map(x => x.MinimumWaitTime, "minwaittime");
             this.Map(x => x.Delta, "delta");
             this.Map(x => x.Enabled, "enabled");
+            this.Map(x => x.ItemSingular, "itemSingular");
+            this.Map(x => x.ItemPlural, "itemPlural");
+            this.Map(x => x.ItemAction, "itemAction");
         }
     }
 }

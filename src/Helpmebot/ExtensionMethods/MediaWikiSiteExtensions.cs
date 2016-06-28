@@ -97,8 +97,13 @@ namespace Helpmebot.ExtensionMethods
         /// </exception>
         public static int GetCategorySize(this MediaWikiSite site, string category)
         {
+            if (!category.StartsWith("Category:"))
+            {
+                category = "Category:" + category;
+            }
+
             string apiCall = string.Format(
-                "{1}?action=query&format=xml&prop=categoryinfo&titles=Category:{0}", 
+                "{1}?action=query&format=xml&prop=categoryinfo&titles={0}", 
                 category, 
                 site.Api);
 
@@ -136,7 +141,7 @@ namespace Helpmebot.ExtensionMethods
         /// </returns>
         public static List<string> GetPagesInCategory(this MediaWikiSite site, string category)
         {
-            string uri = site.Api + "?action=query&list=categorymembers&format=xml&cmlimit=50&cmprop=title&cmtitle="
+            string uri = site.Api + "?action=query&list=categorymembers&format=xml&cmlimit=10&cmprop=title&cmtitle="
                          + category;
 
             using (Stream xmlFragment = HttpRequest.Get(uri).ToStream())

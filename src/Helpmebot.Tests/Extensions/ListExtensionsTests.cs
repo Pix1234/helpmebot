@@ -21,6 +21,7 @@
 namespace Helpmebot.Tests.Extensions
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     using Helpmebot.ExtensionMethods;
 
@@ -49,6 +50,31 @@ namespace Helpmebot.Tests.Extensions
             // assert
             Assert.That(popped, Is.EqualTo("foo"));
             Assert.That(data.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void DeltaTest()
+        {
+            // arrange
+            List<string> oldList = new List<string> { "1", "3", "2" };
+            List<string> newList = new List<string> { "1", "4", "5" };
+
+            List<string> toAdd, toRemove;
+
+            // act
+            var changes = oldList.Delta(newList, out toAdd, out toRemove);
+            
+            // assert
+            Assert.That(changes, Is.EqualTo(4));
+
+            Assert.That(toAdd.Count, Is.EqualTo(2));
+            Assert.That(toRemove.Count, Is.EqualTo(2));
+
+            Assert.That(toAdd.Contains("4"), Is.True);
+            Assert.That(toAdd.Contains("5"), Is.True);
+
+            Assert.That(toRemove.Contains("2"), Is.True);
+            Assert.That(toRemove.Contains("3"), Is.True);
         }
     }
 }
