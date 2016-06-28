@@ -59,7 +59,7 @@ namespace Helpmebot.Services
         /// <summary>
         /// The commands.
         /// </summary>
-        private readonly Dictionary<string, Type> commands;
+        private readonly Dictionary<string, Dictionary<CommandRegistration, Type>> commands;
 
         /// <summary>
         /// The keyword service.
@@ -112,7 +112,7 @@ namespace Helpmebot.Services
             this.logger = logger;
             var types = Assembly.GetExecutingAssembly().GetTypes();
 
-            this.commands = new Dictionary<string, Type>();
+            this.commands = new Dictionary<string, Dictionary<CommandRegistration, Type>>();
             foreach (var type in types)
             {
                 if (!type.IsSubclassOf(typeof(CommandBase)))
@@ -130,7 +130,7 @@ namespace Helpmebot.Services
 
                         if (commandName != string.Empty)
                         {
-                            this.commands.Add(commandName, type);
+                            this.RegisterCommand(commandName, type);
                         }
                     }
                 }
@@ -180,19 +180,16 @@ namespace Helpmebot.Services
             var redirectionResult = this.ParseRedirection(originalArguments);
             IEnumerable<string> arguments = redirectionResult.Arguments.ToList();
 
-            if (this.commands.ContainsKey(commandMessage.CommandName.ToLower(CultureInfo.InvariantCulture)))
-            {
-                Type commandType = this.commands[commandMessage.CommandName.ToLower(CultureInfo.InvariantCulture)];
-                
+            var commandName = commandMessage.CommandName.ToLower(CultureInfo.InvariantCulture);
+            var commandType = this.GetRegisteredCommand(commandName, destination);
+
+            if (commandType != null)
+            {   
                 this.logger.InfoFormat("Creating command object of type {0}", commandType);
 
                 try
                 {
-                    ICommand command = this.commandFactory.CreateType(
-                        commandType, 
-                        destination, 
-                        user, 
-                        arguments);
+                    var command = this.commandFactory.CreateType(commandType, destination, user, arguments);
 
                     command.RedirectionTarget = redirectionResult.Target;
                     command.OriginalArguments = originalArguments;
@@ -226,6 +223,35 @@ namespace Helpmebot.Services
                 return command;
             }
 
+            return null;
+        }
+
+        private Type GetRegisteredCommand(string commandName, string destination)
+        {
+            Dictionary<CommandRegistration, Type> commandRegistrationSet;
+            if (!this.commands.TryGetValue(commandName, out commandRegistrationSet))
+            {
+                // command doesn't exist anywhere
+                return null;
+            }
+
+            var channelRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == destination);
+
+            if (channelRegistration != null)
+            {
+                // This command is defined locally in this channel
+                return commandRegistrationSet[channelRegistration];
+            }
+
+            var globalRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == null);
+
+            if (globalRegistration != null)
+            {
+                // This command is not defined locally, but is defined globally
+                return commandRegistrationSet[globalRegistration];
+            }
+
+            // This command has a registration entry, but isn't defined in this channel or globally.
             return null;
         }
 
@@ -350,15 +376,37 @@ namespace Helpmebot.Services
         /// <summary>
         /// The register command.
         /// </summary>
-        /// <param name="keyword">
+        /// <param name="commandName">
         /// The keyword.
         /// </param>
         /// <param name="implementation">
         /// The implementation.
         /// </param>
-        public void RegisterCommand(string keyword, Type implementation)
+        public void RegisterCommand(string commandName, Type implementation)
         {
-            this.commands.Add(keyword, implementation);
+            this.RegisterCommand(commandName, implementation, null);
+        }
+
+        /// <summary>
+        /// The register command.
+        /// </summary>
+        /// <param name="commandName">
+        /// The keyword.
+        /// </param>
+        /// <param name="implementation">
+        /// The implementation.
+        /// </param>
+        /// <param name="channel">
+        /// The channel to limit this registration to
+        /// </param>
+        public void RegisterCommand(string commandName, Type implementation, string channel)
+        {
+            if (!this.commands.ContainsKey(commandName))
+            {
+                this.commands.Add(commandName, new Dictionary<CommandRegistration, Type>());
+            }
+
+            this.commands[commandName].Add(new CommandRegistration(channel, implementation), implementation);
         }
 
         #endregion

@@ -97,5 +97,19 @@ namespace Helpmebot.Services.Interfaces
         /// The implementation.
         /// </param>
         void RegisterCommand(string keyword, Type implementation);
+
+        /// <summary>
+        /// The register command.
+        /// </summary>
+        /// <param name="commandName">
+        /// The keyword.
+        /// </param>
+        /// <param name="implementation">
+        /// The implementation.
+        /// </param>
+        /// <param name="channel">
+        /// The channel to limit this registration to
+        /// </param>
+        void RegisterCommand(string commandName, Type implementation, string channel);
     }
 }

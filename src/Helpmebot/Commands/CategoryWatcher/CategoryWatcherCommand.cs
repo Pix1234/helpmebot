@@ -23,6 +23,7 @@ namespace Helpmebot.Commands.CategoryWatcher
     using System.Collections.Generic;
     using System.Linq;
 
+    using Castle.Core.Internal;
     using Castle.Core.Logging;
 
     using Helpmebot.Attributes;
@@ -32,7 +33,6 @@ namespace Helpmebot.Commands.CategoryWatcher
     using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.Exceptions;
-    using Helpmebot.ExtensionMethods;
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
 
@@ -126,6 +126,21 @@ namespace Helpmebot.Commands.CategoryWatcher
                 return this.DisableWatcher(watcher);
             }
 
+            if (mode == "set")
+            {
+                return this.SetWatcherConfig(watcher);
+            }
+
+            if (mode == "settext")
+            {
+                if (this.Arguments.Count() < 3)
+                {
+                    throw new ArgumentCountException(3, this.Arguments.Count());
+                }
+
+                return this.SetWatcherText(watcher);
+            }
+
             // if (mode == "status")
             // {
             // return this.Status(watcher);
@@ -171,6 +186,20 @@ namespace Helpmebot.Commands.CategoryWatcher
                     "disable <WatcherName>", 
                     "Disables a category watcher in this channel"));
 
+            dict.Add(
+                "set",
+                new HelpMessage(
+                    this.CommandName,
+                    "set <WatcherName> [[+|-]showwikilink] [[+|-]showshorturl] [[+|-]showwaittime]",
+                    "Enables or disables features for this watcher - for example, to enable the short URLs, use:  set <WatcherName> +shorturls"));
+
+            dict.Add(
+                "settext",
+                new HelpMessage(
+                    this.CommandName,
+                    "set <WatcherName> <singular|plural|action> <text>",
+                    "Sets the text used for the category watcher"));
+
             return dict;
         }
 
@@ -183,7 +212,8 @@ namespace Helpmebot.Commands.CategoryWatcher
                     .List();
             if (list.Count > 0)
             {
-                return new CommandResponse { Message = "Already exists!" }.ToEnumerable();
+                yield return new CommandResponse { Message = "Already exists!" };
+                yield break;
             }
 
             var cw = new CategoryWatcher
@@ -199,9 +229,8 @@ namespace Helpmebot.Commands.CategoryWatcher
 
             this.categoryWatcherBackgroundService.EnableWatcher(cw);
 
-            return
-                new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) }
-                    .ToEnumerable();
+            yield return
+                new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) };
         }
 
         /// <summary>
@@ -223,7 +252,11 @@ namespace Helpmebot.Commands.CategoryWatcher
 
             if (list.Count == 1)
             {
-                this.categoryWatcherBackgroundService.DisableWatcher(list.First());
+                var categoryWatcher = list.First();
+                categoryWatcher.Enabled = false;
+                this.DatabaseSession.Update(categoryWatcher);
+
+                this.categoryWatcherBackgroundService.DisableWatcher(categoryWatcher);
 
                 yield return
                     new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) };
@@ -251,7 +284,11 @@ namespace Helpmebot.Commands.CategoryWatcher
 
             if (list.Count == 1)
             {
-                this.categoryWatcherBackgroundService.EnableWatcher(list.First());
+                var categoryWatcher = list.First();
+                categoryWatcher.Enabled = true;
+                this.DatabaseSession.Update(categoryWatcher);
+
+                this.categoryWatcherBackgroundService.EnableWatcher(categoryWatcher);
 
                 yield return
                     new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) };
@@ -320,6 +357,101 @@ namespace Helpmebot.Commands.CategoryWatcher
                                 watcher, 
                                 delay)
                     };
+        }
+
+        private IEnumerable<CommandResponse> SetWatcherConfig(string watcher)
+        {
+            var list =
+                this.DatabaseSession.CreateCriteria<CategoryWatcher>()
+                    .Add(Restrictions.Eq("Channel", this.CommandChannel))
+                    .Add(Restrictions.Eq("Keyword", watcher))
+                    .List<CategoryWatcher>();
+
+            if (list.Count != 1)
+            {
+                throw new CommandErrorException("Ambiguous watcher definition");
+            }
+
+            var categoryWatcher = list.First();
+            if (this.Arguments.Count() > 2)
+            {
+                this.Arguments.Skip(2).ForEach(
+                    x =>
+                        {
+                            bool? state = null;
+
+                            if (x.StartsWith("+")) state = true;
+                            if (x.StartsWith("-")) state = false;
+
+                            if (!state.HasValue)
+                            {
+                                throw new CommandInvocationException("Unknown setting flag");
+                            }
+
+                            var flag = x.Substring(1);
+                            switch (flag.ToLowerInvariant())
+                            {
+                                case "showwikilink":
+                                    categoryWatcher.ShowWikiLink = state.Value;
+                                    break;
+                                case "showshorturl":
+                                    categoryWatcher.ShowShortUrl = state.Value;
+                                    break;
+                                case "showwaittime":
+                                    categoryWatcher.ShowWaitTime = state.Value;
+                                    break;
+                                default:
+                                    throw new CommandInvocationException("Unknown setting");
+                            }
+                        });
+
+                this.DatabaseSession.Update(categoryWatcher);
+
+                yield return new CommandResponse { Message = "Configuration for watcher updated." };
+            }
+            else
+            {
+                yield return new CommandResponse { Message = "No changes to configuration specified" };
+            }
+        }
+
+        private IEnumerable<CommandResponse> SetWatcherText(string watcher)
+        {
+            var list =
+                this.DatabaseSession.CreateCriteria<CategoryWatcher>()
+                    .Add(Restrictions.Eq("Channel", this.CommandChannel))
+                    .Add(Restrictions.Eq("Keyword", watcher))
+                    .List<CategoryWatcher>();
+
+            if (list.Count != 1)
+            {
+                throw new CommandErrorException("Ambiguous watcher definition");
+            }
+
+            var categoryWatcher = list.First();
+
+            var textType = this.Arguments.Skip(2).First();
+
+            var textContent = string.Join(" ", this.Arguments.Skip(3));
+
+            switch (textType)
+            {
+                case "singular":
+                    categoryWatcher.ItemSingular = textContent;
+                    break;
+                case "plural":
+                    categoryWatcher.ItemPlural = textContent;
+                    break;
+                case "action":
+                    categoryWatcher.ItemAction = textContent;
+                    break;
+                default:
+                    throw new CommandInvocationException("Unknown text type, expecting singular, plural, or action");
+            }
+
+            this.DatabaseSession.Update(categoryWatcher);
+
+            yield return new CommandResponse { Message = "Configuration for watcher updated." };
         }
 
         // /// <returns>

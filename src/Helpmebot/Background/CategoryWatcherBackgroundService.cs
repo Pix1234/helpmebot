@@ -215,9 +215,8 @@ namespace Helpmebot.Background
             foreach (var watcher in categoryWatchers)
             {
                 this.EnableWatcher(watcher);
-
-                // FIXME: this will duplicatekeyexception because a command is already registered
-                this.commandParser.RegisterCommand(watcher.Keyword.ToLower(CultureInfo.InvariantCulture), typeof(CategoryWatcherForceCommand));
+                
+                this.commandParser.RegisterCommand(watcher.Keyword.ToLower(CultureInfo.InvariantCulture), typeof(CategoryWatcherForceCommand), watcher.Channel.Name);
             }
         }
 
@@ -240,8 +239,19 @@ namespace Helpmebot.Background
                     // Update time!
                     var categoryWatcher = firstCatWatcher.Watcher;
 
-                    // do the update
-                    this.PerformCategoryUpdate(categoryWatcher);
+                    try
+                    {
+                        // do the update
+                        this.PerformCategoryUpdate(categoryWatcher);
+                    }
+                    catch (Exception ex)
+                    {
+                        this.logger.ErrorFormat(
+                            ex,
+                            "Error encountered doing automated update on {0} in channel {1}",
+                            categoryWatcher.Keyword,
+                            categoryWatcher.Channel.Name);
+                    }
 
                     // reschedule for the next slot
                     firstCatWatcher.NextTrigger = firstCatWatcher.NextTrigger.AddMinutes(categoryWatcher.SleepTime);
@@ -280,19 +290,30 @@ namespace Helpmebot.Background
         /// </param>
         private void PerformCategoryUpdate(CategoryWatcher categoryWatcher)
         {
-            var watcherPageList = this.GetWatcherPageList(categoryWatcher.Category, categoryWatcher.MediaWikiSite);
-
-            var categoryWatcherItems = this.SynchroniseDatabase(categoryWatcher, watcherPageList);
-
-            // reload the channel, since it's config could have changed.
-            this.databaseSession.Refresh(categoryWatcher.Channel);
-            this.databaseSession.Refresh(categoryWatcher);
-
-            if (!categoryWatcher.Channel.IsSilenced)
+            var transaction = this.databaseSession.BeginTransaction();
+            try
             {
-                var message = this.CompileMessage(categoryWatcher, categoryWatcherItems);
+                var watcherPageList = this.GetWatcherPageList(categoryWatcher.Category, categoryWatcher.MediaWikiSite);
 
-                this.ircClient.SendMessage(categoryWatcher.Channel.Name, message);
+                var categoryWatcherItems = this.SynchroniseDatabase(categoryWatcher, watcherPageList);
+
+                // reload the channel, since it's config could have changed.
+                this.databaseSession.Refresh(categoryWatcher.Channel);
+                this.databaseSession.Refresh(categoryWatcher);
+
+                if (!categoryWatcher.Channel.IsSilenced)
+                {
+                    var message = this.CompileMessage(categoryWatcher, categoryWatcherItems);
+
+                    this.ircClient.SendMessage(categoryWatcher.Channel.Name, message);
+                }
+
+                transaction.Commit();
+            }
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
             }
         }
 
@@ -346,7 +367,9 @@ namespace Helpmebot.Background
             var waiting = DateTime.Now - x.Timestamp;
             if (categoryWatcher.ShowWaitTime && waiting > minimumWaitTime)
             {
-                waitTime = string.Format("(waiting {0})", waiting.ToString("[d’d ’]hh’:’mm’:’ss"));
+                waitTime = string.Format(
+                    "(waiting {0})",
+                    waiting.ToString((waiting.Days > 0 ? "d'd '" : string.Empty) + @"hh\:mm\:ss"));
             }
 
             return string.Format(messageFormat, x.Title, shortUrl, waitTime);
@@ -416,10 +439,16 @@ namespace Helpmebot.Background
                 categoryWatcherItems.Remove(page);
             }
 
+            var touched = watcher.MediaWikiSite.GetTouchedTime(toAdd);
             foreach (var page in toAdd)
             {
-                // TODO: look up the correct timestamp on the API.
-                var item = new CategoryWatcherItem { CategoryWatcher = watcher, Title = page, Timestamp = DateTime.Now };
+                DateTime lastTouched;
+                if (!touched.TryGetValue(page, out lastTouched))
+                {
+                    lastTouched = DateTime.Now;
+                }
+
+                var item = new CategoryWatcherItem { CategoryWatcher = watcher, Title = page, Timestamp = lastTouched };
                 
                 this.databaseSession.Save(item);
 

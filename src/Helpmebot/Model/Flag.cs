@@ -47,17 +47,17 @@ namespace Helpmebot.Model
         public const string LegacySuperuser = "S";
 
         /// <summary>
-        /// The owner.
+        /// The owner-level access, stuff only the bot owner should be able to use
         /// </summary>
         public const string Owner = "O";
 
         /// <summary>
-        /// The standard.
+        /// The standard uncontroversial commands.
         /// </summary>
         public const string Standard = "B";
 
         /// <summary>
-        /// The configuration.
+        /// Configuration access to the bot. This should either be granted per-channel or globally
         /// </summary>
         public const string Configuration = "C";
 

@@ -21,9 +21,17 @@ namespace Helpmebot.ExtensionMethods
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Web;
     using System.Xml.Linq;
 
     using Helpmebot.Model;
+
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+
+    using NHibernate.Util;
+
+    using HttpRequest = Helpmebot.HttpRequest;
 
     /// <summary>
     ///     The media wiki site extensions.
@@ -141,7 +149,7 @@ namespace Helpmebot.ExtensionMethods
         /// </returns>
         public static List<string> GetPagesInCategory(this MediaWikiSite site, string category)
         {
-            string uri = site.Api + "?action=query&list=categorymembers&format=xml&cmlimit=10&cmprop=title&cmtitle="
+            string uri = site.Api + "?action=query&list=categorymembers&format=xml&cmlimit=20&cmprop=title&cmtitle="
                          + category;
 
             using (Stream xmlFragment = HttpRequest.Get(uri).ToStream())
@@ -155,6 +163,41 @@ namespace Helpmebot.ExtensionMethods
 
                 return pages.ToList();
             }
+        }
+
+        public static Dictionary<string, DateTime> GetTouchedTime(
+            this MediaWikiSite site,
+            IEnumerable<string> pageTitles)
+        {
+            // API Max
+            const int Capacity = 50;
+
+            var pageNameList = pageTitles.ToList();
+
+            var first50 = string.Join("|",pageNameList.Take(Capacity).Select(HttpUtility.UrlEncode));
+            var uri = site.Api + "?action=query&format=json&prop=info&titles=" + first50;
+
+            var response = HttpRequest.Get(uri);
+            var deserializeObject = (JObject)JsonConvert.DeserializeObject(response);
+            var pageList = (JObject)((JObject) deserializeObject.GetValue("query")).GetValue("pages");
+
+            var output = new Dictionary<string, DateTime>(Capacity);
+            foreach (var item in pageList)
+            {
+                var jObject = ((JObject)item.Value);
+                var title = (string)jObject["title"];
+                var touched = (DateTime)jObject["touched"];
+
+                output.Add(title, touched);
+            }
+
+            var remainder = pageNameList.Skip(Capacity).ToList();
+            if (remainder.Count > 0)
+            {
+                output.AddOrOverride(GetTouchedTime(site, remainder));
+            }
+
+            return output;
         }
 
         #endregion
