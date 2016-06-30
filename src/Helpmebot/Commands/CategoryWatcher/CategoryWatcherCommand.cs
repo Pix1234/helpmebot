@@ -105,7 +105,7 @@ namespace Helpmebot.Commands.CategoryWatcher
             {
                 if (this.Arguments.Count() < 3)
                 {
-                    throw new ArgumentCountException(3, this.Arguments.Count());
+                    throw new ArgumentCountException(3, this.Arguments.Count(), "add");
                 }
 
                 return this.AddWatcher(watcher, string.Join(" ", this.Arguments.Skip(2)));
@@ -135,7 +135,7 @@ namespace Helpmebot.Commands.CategoryWatcher
             {
                 if (this.Arguments.Count() < 3)
                 {
-                    throw new ArgumentCountException(3, this.Arguments.Count());
+                    throw new ArgumentCountException(3, this.Arguments.Count(), "settext");
                 }
 
                 return this.SetWatcherText(watcher);

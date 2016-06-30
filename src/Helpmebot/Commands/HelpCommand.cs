@@ -106,6 +106,7 @@ namespace Helpmebot.Commands
         {
             if (!this.Arguments.Any())
             {
+                // Yes, this should be a CIE not a ACE, as an ACE will trigger a call to this command
                 throw new CommandInvocationException();
             }
 
