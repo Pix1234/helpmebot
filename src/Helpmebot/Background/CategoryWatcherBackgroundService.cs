@@ -187,7 +187,7 @@ namespace Helpmebot.Background
             CategoryWatcher watcher;
             if (channelWatchers.TryGetValue(keyword, out watcher))
             {
-                this.PerformCategoryUpdate(watcher);
+                this.PerformCategoryUpdate(watcher, false);
             }
         }
 
@@ -242,7 +242,7 @@ namespace Helpmebot.Background
                     try
                     {
                         // do the update
-                        this.PerformCategoryUpdate(categoryWatcher);
+                        this.PerformCategoryUpdate(categoryWatcher, true);
                     }
                     catch (Exception ex)
                     {
@@ -288,18 +288,28 @@ namespace Helpmebot.Background
         /// <param name="categoryWatcher">
         /// The category watcher.
         /// </param>
-        private void PerformCategoryUpdate(CategoryWatcher categoryWatcher)
+        /// <param name="scheduled">
+        /// Whether this update is caused by a scheduled update or not
+        /// </param>
+        private void PerformCategoryUpdate(CategoryWatcher categoryWatcher, bool scheduled)
         {
             var transaction = this.databaseSession.BeginTransaction();
             try
             {
                 var watcherPageList = this.GetWatcherPageList(categoryWatcher.Category, categoryWatcher.MediaWikiSite);
 
-                var categoryWatcherItems = this.SynchroniseDatabase(categoryWatcher, watcherPageList);
+                IEnumerable<CategoryWatcherItem> newStuff;
+                var categoryWatcherItems = this.SynchroniseDatabase(categoryWatcher, watcherPageList, out newStuff);
 
                 // reload the channel, since it's config could have changed.
                 this.databaseSession.Refresh(categoryWatcher.Channel);
                 this.databaseSession.Refresh(categoryWatcher);
+                
+                // Override the full list if this CW is setup to only show the delta
+                if (categoryWatcher.Delta)
+                {
+                    categoryWatcherItems = newStuff;
+                }
 
                 if (!categoryWatcher.Channel.IsSilenced)
                 {
@@ -415,7 +425,7 @@ namespace Helpmebot.Background
         /// <param name="watcherPageList">
         /// The watcher page list.
         /// </param>
-        private IEnumerable<CategoryWatcherItem> SynchroniseDatabase(CategoryWatcher watcher, IEnumerable<string> watcherPageList)
+        private IEnumerable<CategoryWatcherItem> SynchroniseDatabase(CategoryWatcher watcher, IEnumerable<string> watcherPageList, out IEnumerable<CategoryWatcherItem> newStuff)
         {
             var categoryWatcherItems =
                 this.databaseSession.CreateCriteria<CategoryWatcherItem>()
@@ -425,6 +435,9 @@ namespace Helpmebot.Background
 
             List<string> toAdd, toRemove;
             var changes = categoryWatcherItems.Keys.ToList().Delta(watcherPageList.ToList(), out toAdd, out toRemove);
+
+            var newStuffList = new List<CategoryWatcherItem>();
+            newStuff = newStuffList;
 
             if (changes == 0)
             {
@@ -453,8 +466,9 @@ namespace Helpmebot.Background
                 this.databaseSession.Save(item);
 
                 categoryWatcherItems.Add(page, item);
+                newStuffList.Add(item);
             }
-
+            
             return categoryWatcherItems.Values;
         }
         

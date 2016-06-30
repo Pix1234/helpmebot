@@ -126,19 +126,19 @@ namespace Helpmebot.Commands.CategoryWatcher
                 return this.DisableWatcher(watcher);
             }
 
-            if (mode == "set")
+            if (mode == "flag")
             {
-                return this.SetWatcherConfig(watcher);
+                return this.SetWatcherFlag(watcher);
             }
 
-            if (mode == "settext")
+            if (mode == "set")
             {
                 if (this.Arguments.Count() < 3)
                 {
                     throw new ArgumentCountException(3, this.Arguments.Count(), "settext");
                 }
 
-                return this.SetWatcherText(watcher);
+                return this.SetWatcherConfig(watcher);
             }
 
             // if (mode == "status")
@@ -187,18 +187,18 @@ namespace Helpmebot.Commands.CategoryWatcher
                     "Disables a category watcher in this channel"));
 
             dict.Add(
+                "flag",
+                new HelpMessage(
+                    this.CommandName,
+                    "flag <WatcherName> [<+|->showwikilink] [<+|->showshorturl] [<+|->showwaittime] [<+|->delta]",
+                    "Enables or disables features for this watcher - for example, to enable the short URLs, use:  flag <WatcherName> +shorturls"));
+
+            dict.Add(
                 "set",
                 new HelpMessage(
                     this.CommandName,
-                    "set <WatcherName> [[+|-]showwikilink] [[+|-]showshorturl] [[+|-]showwaittime]",
-                    "Enables or disables features for this watcher - for example, to enable the short URLs, use:  set <WatcherName> +shorturls"));
-
-            dict.Add(
-                "settext",
-                new HelpMessage(
-                    this.CommandName,
-                    "set <WatcherName> <singular|plural|action> <text>",
-                    "Sets the text used for the category watcher"));
+                    "set <WatcherName> <singular|plural|action|category|priority|mintime> <value>",
+                    "Sets the text used for reports, the category to watch, the priority, or the minimum wait time before reporting delay of the category watcher"));
 
             return dict;
         }
@@ -244,23 +244,15 @@ namespace Helpmebot.Commands.CategoryWatcher
         /// </returns>
         private IEnumerable<CommandResponse> DisableWatcher(string watcher)
         {
-            var list =
-                this.DatabaseSession.CreateCriteria<CategoryWatcher>()
-                    .Add(Restrictions.Eq("Channel", this.CommandChannel))
-                    .Add(Restrictions.Eq("Keyword", watcher))
-                    .List<CategoryWatcher>();
+            var categoryWatcher = this.GetCategoryWatcher(watcher);
 
-            if (list.Count == 1)
-            {
-                var categoryWatcher = list.First();
-                categoryWatcher.Enabled = false;
-                this.DatabaseSession.Update(categoryWatcher);
+            categoryWatcher.Enabled = false;
+            this.DatabaseSession.Update(categoryWatcher);
 
-                this.categoryWatcherBackgroundService.DisableWatcher(categoryWatcher);
+            this.categoryWatcherBackgroundService.DisableWatcher(categoryWatcher);
 
-                yield return
-                    new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) };
-            }
+            yield return
+                new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) };
 
             throw new CommandErrorException("Ambiguous watcher definition");
         }
@@ -276,23 +268,15 @@ namespace Helpmebot.Commands.CategoryWatcher
         /// </returns>
         private IEnumerable<CommandResponse> EnableWatcher(string watcher)
         {
-            var list =
-                this.DatabaseSession.CreateCriteria<CategoryWatcher>()
-                    .Add(Restrictions.Eq("Channel", this.CommandChannel))
-                    .Add(Restrictions.Eq("Keyword", watcher))
-                    .List<CategoryWatcher>();
+            var categoryWatcher = this.GetCategoryWatcher(watcher);
 
-            if (list.Count == 1)
-            {
-                var categoryWatcher = list.First();
-                categoryWatcher.Enabled = true;
-                this.DatabaseSession.Update(categoryWatcher);
+            categoryWatcher.Enabled = true;
+            this.DatabaseSession.Update(categoryWatcher);
 
-                this.categoryWatcherBackgroundService.EnableWatcher(categoryWatcher);
+            this.categoryWatcherBackgroundService.EnableWatcher(categoryWatcher);
 
-                yield return
-                    new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) };
-            }
+            yield return
+                new CommandResponse { Message = this.CommandServiceHelper.MessageService.Done(this.CommandSource) };
 
             throw new CommandErrorException("Ambiguous watcher definition");
         }
@@ -308,18 +292,7 @@ namespace Helpmebot.Commands.CategoryWatcher
         /// </returns>
         private IEnumerable<CommandResponse> SetDelay(string watcher)
         {
-            var list =
-                this.DatabaseSession.CreateCriteria<CategoryWatcher>()
-                    .Add(Restrictions.Eq("Channel", this.CommandChannel))
-                    .Add(Restrictions.Eq("Keyword", watcher))
-                    .List<CategoryWatcher>();
-
-            if (list.Count != 1)
-            {
-                throw new CommandErrorException("Ambiguous watcher definition");
-            }
-
-            var categoryWatcher = list.First();
+            var categoryWatcher = this.GetCategoryWatcher(watcher);
 
             if (this.Arguments.Count() == 3)
             {
@@ -359,20 +332,10 @@ namespace Helpmebot.Commands.CategoryWatcher
                     };
         }
 
-        private IEnumerable<CommandResponse> SetWatcherConfig(string watcher)
+        private IEnumerable<CommandResponse> SetWatcherFlag(string watcher)
         {
-            var list =
-                this.DatabaseSession.CreateCriteria<CategoryWatcher>()
-                    .Add(Restrictions.Eq("Channel", this.CommandChannel))
-                    .Add(Restrictions.Eq("Keyword", watcher))
-                    .List<CategoryWatcher>();
+            var categoryWatcher = this.GetCategoryWatcher(watcher);
 
-            if (list.Count != 1)
-            {
-                throw new CommandErrorException("Ambiguous watcher definition");
-            }
-
-            var categoryWatcher = list.First();
             if (this.Arguments.Count() > 2)
             {
                 this.Arguments.Skip(2).ForEach(
@@ -400,6 +363,9 @@ namespace Helpmebot.Commands.CategoryWatcher
                                 case "showwaittime":
                                     categoryWatcher.ShowWaitTime = state.Value;
                                     break;
+                                case "delta":
+                                    categoryWatcher.Delta = state.Value;
+                                    break;
                                 default:
                                     throw new CommandInvocationException("Unknown setting");
                             }
@@ -415,7 +381,53 @@ namespace Helpmebot.Commands.CategoryWatcher
             }
         }
 
-        private IEnumerable<CommandResponse> SetWatcherText(string watcher)
+        private IEnumerable<CommandResponse> SetWatcherConfig(string watcher)
+        {
+            var categoryWatcher = this.GetCategoryWatcher(watcher);
+
+            var textType = this.Arguments.Skip(2).First();
+
+            var textContent = string.Join(" ", this.Arguments.Skip(3));
+            int value;
+
+            switch (textType)
+            {
+                case "singular":
+                    categoryWatcher.ItemSingular = textContent;
+                    break;
+                case "plural":
+                    categoryWatcher.ItemPlural = textContent;
+                    break;
+                case "action":
+                    categoryWatcher.ItemAction = textContent;
+                    break;
+                case "category":
+                    categoryWatcher.Category = textContent;
+                    break;
+                case "priority":
+                    if (!int.TryParse(textContent, out value))
+                    {
+                        throw new CommandInvocationException("set");
+                    }
+                    categoryWatcher.Priority = value;
+                    break;
+                case "mintime":
+                    if (!int.TryParse(textContent, out value))
+                    {
+                        throw new CommandInvocationException("set");
+                    }
+                    categoryWatcher.Priority = value;
+                    break;
+                default:
+                    throw new CommandInvocationException("Unknown text type, expecting singular, plural, or action");
+            }
+
+            this.DatabaseSession.Update(categoryWatcher);
+
+            yield return new CommandResponse { Message = "Configuration for watcher updated." };
+        }
+
+        private CategoryWatcher GetCategoryWatcher(string watcher)
         {
             var list =
                 this.DatabaseSession.CreateCriteria<CategoryWatcher>()
@@ -429,31 +441,9 @@ namespace Helpmebot.Commands.CategoryWatcher
             }
 
             var categoryWatcher = list.First();
-
-            var textType = this.Arguments.Skip(2).First();
-
-            var textContent = string.Join(" ", this.Arguments.Skip(3));
-
-            switch (textType)
-            {
-                case "singular":
-                    categoryWatcher.ItemSingular = textContent;
-                    break;
-                case "plural":
-                    categoryWatcher.ItemPlural = textContent;
-                    break;
-                case "action":
-                    categoryWatcher.ItemAction = textContent;
-                    break;
-                default:
-                    throw new CommandInvocationException("Unknown text type, expecting singular, plural, or action");
-            }
-
-            this.DatabaseSession.Update(categoryWatcher);
-
-            yield return new CommandResponse { Message = "Configuration for watcher updated." };
+            return categoryWatcher;
         }
-
+        
         // /// <returns>
         // /// </param>
         // /// The watcher.
