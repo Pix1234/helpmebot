@@ -305,8 +305,8 @@ namespace Helpmebot.Background
                 this.databaseSession.Refresh(categoryWatcher.Channel);
                 this.databaseSession.Refresh(categoryWatcher);
                 
-                // Override the full list if this CW is setup to only show the delta
-                if (categoryWatcher.Delta)
+                // Override the full list if this CW is setup to only show the delta, and it's a scheduled update
+                if (scheduled && categoryWatcher.Delta)
                 {
                     categoryWatcherItems = newStuff;
                 }
