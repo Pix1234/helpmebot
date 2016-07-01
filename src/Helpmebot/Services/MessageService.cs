@@ -28,6 +28,8 @@ namespace Helpmebot.Services
     using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Services.Interfaces;
 
+    using MySql.Data.MySqlClient;
+
     using MessageCache = Helpmebot.Model.CachedItem<System.Collections.Generic.IEnumerable<string>>;
 
     /// <summary>
@@ -256,7 +258,18 @@ namespace Helpmebot.Services
                 }
             }
 
-            var response = this.responseRepository.GetByName(messageKey);
+            ResponseMessage response;
+
+            try
+            {
+                response = this.responseRepository.GetByName(messageKey);
+            }
+            catch (MySqlException ex)
+            {
+                this.Log.Warn("Error retrieving message content", ex);
+                return new List<string>();
+            }
+
             if (response != null)
             {
                 // extract the byte array from the dataset
@@ -266,7 +279,7 @@ namespace Helpmebot.Services
                 {
                     if (!this.responseCache.ContainsKey(messageKey))
                     {
-                        var expiry = TimeSpan.FromHours(12);
+                        var expiry = TimeSpan.FromHours(1);
                         this.responseCache.Add(messageKey, new MessageCache(rawMessageFromDatabase, expiry));
                     }
                 }

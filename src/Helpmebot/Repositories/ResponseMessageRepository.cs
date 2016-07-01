@@ -27,6 +27,8 @@ namespace Helpmebot.Repositories
     using Helpmebot.Model;
     using Helpmebot.Repositories.Interfaces;
 
+    using MySql.Data.MySqlClient;
+
     using NHibernate;
 
     /// <summary>

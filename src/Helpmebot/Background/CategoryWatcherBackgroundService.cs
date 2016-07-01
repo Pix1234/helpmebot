@@ -231,7 +231,14 @@ namespace Helpmebot.Background
 
             while (true)
             {
-                var firstCatWatcher = this.schedule.First;
+                var firstCatWatcher = this.schedule.FirstOrDefault();
+                if (firstCatWatcher == null)
+                {
+                    // No category watchers enabled, wait a while
+                    Thread.Sleep(5000);
+                    continue;
+                }
+
                 var remaining = firstCatWatcher.NextTrigger - DateTime.Now;
 
                 if (remaining.TotalMilliseconds <= 0)
