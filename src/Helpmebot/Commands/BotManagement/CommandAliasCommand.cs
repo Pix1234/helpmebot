@@ -45,6 +45,9 @@
         /// <param name="commandServiceHelper">
         /// The command Service Helper.
         /// </param>
+        /// <param name="commandParser">
+        /// The command parser
+        /// </param>
         public CommandAliasCommand(
             string commandSource,
             IUser user,
@@ -140,8 +143,8 @@
 
             var list =
                 this.DatabaseSession.CreateCriteria<CommandAlias>()
-                    .Add(Restrictions.Eq("Channel", global ? null : this.CommandChannel))
-                    .Add(Restrictions.Eq("Alias", alias))
+                    .Add(global ? Restrictions.IsNull("Channel") : Restrictions.Eq("Channel", this.CommandChannel))
+                    .Add(Restrictions.Eq("Invocation", alias))
                     .List<CommandAlias>()
                     .ToList();
 
@@ -153,15 +156,16 @@
             // "null" is supported as a means to disable a command
             var realTarget = target == "null" ? null : target;
 
-            var obj = new CommandAlias
+            var commandAlias = new CommandAlias
                           {
                               Channel = global ? null : this.CommandChannel,
                               Invocation = alias,
                               Target = realTarget
                           };
+            
+            this.commandParser.RegisterCommandAlias(commandAlias.Invocation, commandAlias.Target, global ? null : this.CommandChannel.Name);
 
-            // TODO: register to command parser
-            this.DatabaseSession.Save(obj);
+            this.DatabaseSession.Save(commandAlias);
 
             yield return
                 new CommandResponse
@@ -181,21 +185,27 @@
 
             var list =
                 this.DatabaseSession.CreateCriteria<CommandAlias>()
-                    .Add(Restrictions.Eq("Channel", global ? null : this.CommandChannel))
-                    .Add(Restrictions.Eq("Alias", alias))
+                    .Add(global ? Restrictions.IsNull("Channel") : Restrictions.Eq("Channel", this.CommandChannel))
+                    .Add(Restrictions.Eq("Invocation", alias))
                     .List<CommandAlias>()
                     .ToList();
 
-            if (list.Count != 1)
+            if (list.Count > 1)
             {
                 throw new CommandErrorException("Ambiguous alias definition");
+            }
+
+            if (list.Count == 0)
+            {
+                throw new CommandErrorException("Alias definition not found");
             }
 
             var commandAlias = list.First();
 
             this.DatabaseSession.Delete(commandAlias);
 
-            // TODO: unregister from command parser
+            this.commandParser.UnregisterCommandAlias(commandAlias.Invocation, global ? null : this.CommandChannel.Name);
+            
             yield return
                 new CommandResponse
                     {
@@ -211,7 +221,7 @@
         {
             var list =
                 this.DatabaseSession.CreateCriteria<CommandAlias>()
-                    .Add(Restrictions.Eq("Channel", global ? null : this.CommandChannel))
+                    .Add(global ? Restrictions.IsNull("Channel") : Restrictions.Eq("Channel", this.CommandChannel))
                     .List<CommandAlias>()
                     .ToList();
 

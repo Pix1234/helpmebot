@@ -148,7 +148,10 @@ namespace Helpmebot.Services
             this.aliases = new Dictionary<string, Dictionary<CommandAliasRegistration, string>>();
             foreach (var alias in commandAliases)
             {
-                this.RegisterCommandAlias(alias.Invocation, alias.Target, alias.Channel.Name);
+                this.RegisterCommandAlias(
+                    alias.Invocation,
+                    alias.Target,
+                    alias.Channel == null ? null : alias.Channel.Name);
             }
 
             this.logger.InfoFormat("Initialised Command Parser with {0} commands and {1} aliases.", this.commands.Count, this.aliases.Count);

@@ -111,5 +111,9 @@ namespace Helpmebot.Services.Interfaces
         /// The channel to limit this registration to
         /// </param>
         void RegisterCommand(string commandName, Type implementation, string channel);
+
+        void RegisterCommandAlias(string aliasName, string targetName, string channel);
+
+        void UnregisterCommandAlias(string aliasName, string channel);
     }
 }
