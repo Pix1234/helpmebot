@@ -39,6 +39,8 @@ namespace Helpmebot.Services
     using Helpmebot.Services.Interfaces;
     using Helpmebot.TypedFactories;
 
+    using NHibernate;
+
     /// <summary>
     /// The command parser.
     /// </summary>
@@ -60,6 +62,8 @@ namespace Helpmebot.Services
         /// The commands.
         /// </summary>
         private readonly Dictionary<string, Dictionary<CommandRegistration, Type>> commands;
+
+        private readonly Dictionary<string, Dictionary<CommandAliasRegistration, string>> aliases;
 
         /// <summary>
         /// The keyword service.
@@ -98,12 +102,16 @@ namespace Helpmebot.Services
         /// <param name="logger">
         /// The logger.
         /// </param>
+        /// <param name="databaseSession">
+        /// Database session for loading the aliases only
+        /// </param>
         public CommandParser(
             string commandTrigger,
             ICommandTypedFactory commandFactory,
             IKeywordService keywordService,
             IKeywordCommandFactory keywordFactory,
-            ILogger logger)
+            ILogger logger,
+            ISession databaseSession)
         {
             this.commandTrigger = commandTrigger;
             this.commandFactory = commandFactory;
@@ -136,7 +144,14 @@ namespace Helpmebot.Services
                 }
             }
 
-            this.logger.InfoFormat("Initialised Command Parser with {0} commands.", this.commands.Count);
+            var commandAliases = databaseSession.CreateCriteria<CommandAlias>().List<CommandAlias>();
+            this.aliases = new Dictionary<string, Dictionary<CommandAliasRegistration, string>>();
+            foreach (var alias in commandAliases)
+            {
+                this.RegisterCommandAlias(alias.Invocation, alias.Target, alias.Channel.Name);
+            }
+
+            this.logger.InfoFormat("Initialised Command Parser with {0} commands and {1} aliases.", this.commands.Count, this.aliases.Count);
         }
 
         #endregion
@@ -228,8 +243,10 @@ namespace Helpmebot.Services
 
         private Type GetRegisteredCommand(string commandName, string destination)
         {
+            string realCommandName = this.DereferenceAlias(commandName, destination);
+
             Dictionary<CommandRegistration, Type> commandRegistrationSet;
-            if (!this.commands.TryGetValue(commandName, out commandRegistrationSet))
+            if (!this.commands.TryGetValue(realCommandName, out commandRegistrationSet))
             {
                 // command doesn't exist anywhere
                 return null;
@@ -253,6 +270,35 @@ namespace Helpmebot.Services
 
             // This command has a registration entry, but isn't defined in this channel or globally.
             return null;
+        }
+
+        private string DereferenceAlias(string commandName, string destination)
+        {
+            Dictionary<CommandAliasRegistration, string> commandRegistrationSet;
+            if (!this.aliases.TryGetValue(commandName, out commandRegistrationSet))
+            {
+                // alias doesn't exist anywhere, return original command name
+                return commandName;
+            }
+
+            var channelRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == destination);
+
+            if (channelRegistration != null)
+            {
+                // This alias is defined locally in this channel
+                return commandRegistrationSet[channelRegistration];
+            }
+
+            var globalRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == null);
+
+            if (globalRegistration != null)
+            {
+                // This alias is not defined locally, but is defined globally
+                return commandRegistrationSet[globalRegistration];
+            }
+
+            // This command has a registration entry, but isn't defined in this channel or globally.
+            return commandName;
         }
 
         /// <summary>
@@ -373,6 +419,10 @@ namespace Helpmebot.Services
             this.commandFactory.Release(command);
         }
 
+        #endregion
+
+        #region Command Registration
+
         /// <summary>
         /// The register command.
         /// </summary>
@@ -408,6 +458,39 @@ namespace Helpmebot.Services
 
             this.commands[commandName].Add(new CommandRegistration(channel, implementation), implementation);
         }
+        
+        public void RegisterCommandAlias(string aliasName, string targetName, string channel)
+        {
+            if (this.GetRegisteredCommand(targetName, channel) == null)
+            {
+                throw new Exception("Cannot register alias for unknown command");
+            }
+
+            if (!this.aliases.ContainsKey(aliasName))
+            {
+                this.aliases.Add(aliasName, new Dictionary<CommandAliasRegistration, string>());
+            }
+
+            this.aliases[aliasName].Add(new CommandAliasRegistration(channel, targetName), targetName);
+        }
+
+        public void UnregisterCommandAlias(string aliasName, string channel)
+        {
+            if (!this.aliases.ContainsKey(aliasName))
+            {
+                throw new Exception("Cannot unregister alias - alias is not registered");
+            }
+
+            var commandAliasRegistration = this.aliases[aliasName].Keys.FirstOrDefault(x => x.Channel == channel);
+
+            if (commandAliasRegistration == null)
+            {
+                throw new Exception("Cannot unregister alias - alias is not registered");
+            }
+
+            this.aliases[aliasName].Remove(commandAliasRegistration);
+        }
+
 
         #endregion
     }

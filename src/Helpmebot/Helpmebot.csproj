@@ -84,6 +84,7 @@
     <Compile Include="Background\TimerBackgroundServiceBase.cs" />
     <Compile Include="Background\CategoryWatcherBackgroundService.cs" />
     <Compile Include="Commands\BotManagement\ClearMessageCacheCommand.cs" />
+    <Compile Include="Commands\BotManagement\CommandAliasCommand.cs" />
     <Compile Include="Commands\BotManagement\DieCommand.cs" />
     <Compile Include="Commands\BotManagement\UptimeCommand.cs" />
     <Compile Include="Commands\CategoryWatcher\CategoryWatcherFetchAllCommand.cs" />
@@ -175,11 +176,14 @@
     <Compile Include="Model\CachedItem.cs" />
     <Compile Include="Model\CategoryWatcher.cs" />
     <Compile Include="Model\CategoryWatcherItem.cs" />
+    <Compile Include="Model\CommandAlias.cs" />
+    <Compile Include="Model\CommandAliasRegistration.cs" />
     <Compile Include="Model\CommandRegistration.cs" />
     <Compile Include="Model\FlagGroupChannel.cs" />
     <Compile Include="Model\ResponseMessage.cs" />
     <Compile Include="Persistence\Mappings\CategoryWatcherItemMap.cs" />
     <Compile Include="Persistence\Mappings\CategoryWatcherMap.cs" />
+    <Compile Include="Persistence\Mappings\CommandAliasMap.cs" />
     <Compile Include="Persistence\Mappings\FlagGroupChannelMap.cs" />
     <Compile Include="Repositories\ChannelRepository.cs" />
     <Compile Include="Repositories\Interfaces\IBasicRepository.cs" />

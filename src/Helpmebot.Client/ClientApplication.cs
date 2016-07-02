@@ -348,6 +348,17 @@ namespace Helpmebot.Client
             this.DoSingleSchemaChange(
                 @"ALTER TABLE categorywatcher ADD itemAction VARCHAR(255) DEFAULT 'in category {0}' NOT NULL",
                 database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE commandalias
+                    (
+                        id CHAR(36) PRIMARY KEY NOT NULL,
+                        channel CHAR(36),
+                        invocation VARCHAR(45) NOT NULL,
+                        target VARCHAR(45),
+                        CONSTRAINT commandalias_channel_id_fk FOREIGN KEY (channel) REFERENCES channel (id) ON DELETE CASCADE ON UPDATE CASCADE
+                    )",
+                database);
         }
 
         /// <summary>

@@ -4,7 +4,7 @@
 
     internal class CommandRegistration
     {
-        /// <summary>Initializes a new instance of the <see cref="T:System.Object" /> class.</summary>
+        /// <summary>Initializes a new instance of the <see cref="T:CommandRegistration" /> class.</summary>
         public CommandRegistration(string channel, Type type)
         {
             this.Channel = channel;
