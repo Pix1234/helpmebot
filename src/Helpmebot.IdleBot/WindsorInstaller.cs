@@ -37,7 +37,6 @@ namespace Helpmebot.IdleBot
     using Helpmebot.Configuration.XmlSections.Interfaces;
     using Helpmebot.IRC;
     using Helpmebot.IRC.Interfaces;
-    using Helpmebot.Legacy.Database;
     using Helpmebot.Startup.Facilities;
     using Helpmebot.Startup.Resolvers;
 
@@ -104,7 +103,6 @@ namespace Helpmebot.IdleBot
                 Component.For<ICoreConfiguration>().Instance(configurationHelper.CoreConfiguration),
                 Component.For<IPrivateConfiguration>().Instance(configurationHelper.PrivateConfiguration),
                 Component.For<IIrcConfiguration>().Instance(configurationHelper.IrcConfiguration),
-                Component.For<ILegacyDatabase>().ImplementedBy<LegacyDatabase>(),
                 Classes.FromThisAssembly().InNamespace("Helpmebot.Repositories").WithService.AllInterfaces(),
                 Classes.FromThisAssembly().InNamespace("Helpmebot.Services").WithService.AllInterfaces(),
                 Component.For<SupportHelper>());

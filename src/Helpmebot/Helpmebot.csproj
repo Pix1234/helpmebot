@@ -171,7 +171,6 @@
     <Compile Include="ExtensionMethods\ListExtensions.cs" />
     <Compile Include="Legacy\Commands\Teach.cs" />
     <Compile Include="Legacy\Commands\Whois.cs" />
-    <Compile Include="Legacy\Database\ILegacyDatabase.cs" />
     <Compile Include="Model\ActiveCategoryWatcher.cs" />
     <Compile Include="Model\CachedItem.cs" />
     <Compile Include="Model\CategoryWatcher.cs" />
@@ -277,7 +276,6 @@
     <Compile Include="Model\BlockInformation.cs" />
     <Compile Include="Legacy\Commands\Blockuser.cs" />
     <Compile Include="Legacy\Commands\Autolink.cs" />
-    <Compile Include="Legacy\Commands\Configcacheclear.cs" />
     <Compile Include="Legacy\Commands\CategorySize.cs" />
     <Compile Include="Legacy\Commands\FunStuff\Beer.cs" />
     <Compile Include="Legacy\Commands\FunStuff\Coffee.cs" />
@@ -333,9 +331,6 @@
     <Compile Include="ExtensionMethods\FormatWithExtension.cs" />
     <Compile Include="HttpRequest.cs" />
     <Compile Include="Services\UrlShortening\IsGdUrlShorteningService.cs" />
-    <Compile Include="Legacy\Configuration\LegacyConfig.cs" />
-    <Compile Include="Legacy\Configuration\ConfigurationSetting.cs" />
-    <Compile Include="Legacy\Database\LegacyDatabase.cs" />
     <Compile Include="GlobalFunctions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\Interfaces\IMessageService.cs" />

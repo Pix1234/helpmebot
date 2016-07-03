@@ -20,7 +20,6 @@ namespace helpmebot6.Commands
     using Helpmebot.Commands.CommandUtilities.Response;
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.Exceptions;
-    using Helpmebot.Legacy.Configuration;
     using Helpmebot.Model.Interfaces;
 
     using Remotion.Linq.Parsing;
