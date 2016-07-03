@@ -58,6 +58,8 @@ namespace Helpmebot.Background
 
         private readonly ICommandParser commandParser;
 
+        private readonly bool enableCategoryWatcherService;
+
         private readonly SimplePriorityQueue<ActiveCategoryWatcher> schedule;
 
         private readonly Dictionary<CategoryWatcher, ActiveCategoryWatcher> activeLookup;
@@ -87,13 +89,17 @@ namespace Helpmebot.Background
         /// <param name="commandParser">
         /// The command parser
         /// </param>
+        /// <param name="enableCategoryWatcherService">
+        /// Enable this service?
+        /// </param>
         public CategoryWatcherBackgroundService(
             IIrcClient ircClient,
             ISession databaseSession,
             ILogger logger,
             IIgnoredPagesRepository ignoredPagesRepository,
             IUrlShorteningService urlShorteningService,
-            ICommandParser commandParser)
+            ICommandParser commandParser,
+            bool enableCategoryWatcherService)
         {
             this.ircClient = ircClient;
             this.databaseSession = databaseSession;
@@ -101,12 +107,18 @@ namespace Helpmebot.Background
             this.ignoredPagesRepository = ignoredPagesRepository;
             this.urlShorteningService = urlShorteningService;
             this.commandParser = commandParser;
+            this.enableCategoryWatcherService = enableCategoryWatcherService;
 
             this.schedulerThread = new Thread(this.Scheduler);
             this.schedule = new SimplePriorityQueue<ActiveCategoryWatcher>();
 
             this.activeLookup = new Dictionary<CategoryWatcher, ActiveCategoryWatcher>();
             this.channelLookup = new Dictionary<string, Dictionary<string, CategoryWatcher>>();
+            
+            if (!enableCategoryWatcherService)
+            {
+                this.logger.WarnFormat("{0} is disabled and will not function.", this.GetType().Name);
+            }
         }
 
         /// <summary>
@@ -155,6 +167,12 @@ namespace Helpmebot.Background
         /// </summary>
         public void Start()
         {
+            if (!this.enableCategoryWatcherService)
+            {
+                this.logger.InfoFormat("Start requested for {0}, but service is disabled.", this.GetType());
+                return;
+            }
+
             this.logger.Info("Starting background service");
             this.schedulerThread.Start();
         }
@@ -431,6 +449,9 @@ namespace Helpmebot.Background
         /// </param>
         /// <param name="watcherPageList">
         /// The watcher page list.
+        /// </param>
+        /// <param name="newStuff">
+        /// Returns the new items collection
         /// </param>
         private IEnumerable<CategoryWatcherItem> SynchroniseDatabase(CategoryWatcher watcher, IEnumerable<string> watcherPageList, out IEnumerable<CategoryWatcherItem> newStuff)
         {

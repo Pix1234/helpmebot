@@ -118,7 +118,7 @@ namespace Helpmebot.Background
         {
             if (!this.enabled)
             {
-                this.logger.WarnFormat("{0} is disabled and will not function.", this.GetType().Name);
+                this.logger.InfoFormat("{0} is disabled and will not function.", this.GetType().Name);
                 return;
             }
 
@@ -133,6 +133,7 @@ namespace Helpmebot.Background
         {
             this.logger.Info("Stopping Monitoring Client.");
             this.alive = false;
+            this.monitorthread.Interrupt();
         }
 
         #endregion

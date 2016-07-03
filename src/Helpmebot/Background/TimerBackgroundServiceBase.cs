@@ -109,7 +109,7 @@ namespace Helpmebot.Background
         {
             if (!this.enabled)
             {
-                this.Logger.WarnFormat("Start requested for {0}, but service is disabled.", this.GetType().Name);
+                this.Logger.InfoFormat("Start requested for {0}, but service is disabled.", this.GetType().Name);
                 return;
             }
 
@@ -126,7 +126,7 @@ namespace Helpmebot.Background
         {
             if (!this.enabled)
             {
-                this.Logger.WarnFormat("Stop requested for {0}, but service is disabled.", this.GetType().Name);
+                this.Logger.InfoFormat("Stop requested for {0}, but service is disabled.", this.GetType().Name);
                 return;
             }
 

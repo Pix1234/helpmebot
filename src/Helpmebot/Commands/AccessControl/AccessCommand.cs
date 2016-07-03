@@ -130,14 +130,14 @@ namespace Helpmebot.Commands.AccessControl
                                new HelpMessage(
                                this.CommandName, 
                                addSyntax, 
-                               "Creates or edits a flag group.")
+                               "Adds a flag group to the hostmask, nickserv account, or channel.")
                            }, 
                            {
                                "delete", 
                                new HelpMessage(
                                this.CommandName, 
-                               deleteSyntax, 
-                               "Deletes an existing flag group.")
+                               deleteSyntax,
+                               "Removes a flag group from the hostmask, nickserv account, or channel")
                            }
                        };
         }
