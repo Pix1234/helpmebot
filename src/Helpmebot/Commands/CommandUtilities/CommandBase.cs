@@ -466,7 +466,8 @@ namespace Helpmebot.Commands.CommandUtilities
                                        this.CommandServiceHelper.MessageService.RetrieveMessage(
                                            Messages.OnAccessDenied, 
                                            this.CommandSource, 
-                                           null)
+                                           null),
+                                   IgnoreRedirection = true
                                };
 
             return response.ToEnumerable();

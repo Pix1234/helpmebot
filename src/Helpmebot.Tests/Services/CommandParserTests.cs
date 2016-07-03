@@ -198,7 +198,8 @@ namespace Helpmebot.Tests.Services
                 this.factory.Object, 
                 this.keywordService.Object, 
                 this.keywordFactory.Object, 
-                this.Logger.Object);
+                this.Logger.Object,
+                this.DatabaseSession.Object);
             const string Test = "~command arg one two three";
             var message = new CommandMessage
                               {
@@ -652,7 +653,8 @@ namespace Helpmebot.Tests.Services
                 this.factory.Object, 
                 this.keywordService.Object, 
                 this.keywordFactory.Object, 
-                this.Logger.Object);
+                this.Logger.Object,
+                this.DatabaseSession.Object);
         }
 
         #endregion

@@ -83,6 +83,7 @@
     <Compile Include="Background\SystemMonitoringClientService.cs" />
     <Compile Include="Background\TimerBackgroundServiceBase.cs" />
     <Compile Include="Background\CategoryWatcherBackgroundService.cs" />
+    <Compile Include="Commands\AccessControl\RemoteSendCommand.cs" />
     <Compile Include="Commands\BotManagement\ClearMessageCacheCommand.cs" />
     <Compile Include="Commands\BotManagement\CommandAliasCommand.cs" />
     <Compile Include="Commands\BotManagement\DieCommand.cs" />
@@ -100,6 +101,7 @@
     <Compile Include="Commands\CategoryWatcher\CategoryWatcherForceCommand.cs" />
     <Compile Include="Commands\CommandUtilities\Models\HelpMessage.cs" />
     <Compile Include="Commands\CommandUtilities\Models\RedirectionResult.cs" />
+    <Compile Include="Commands\CommandUtilities\Response\CommandResponseType.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
     <Compile Include="Commands\Miscellaneous\NotifyOnJoinCommand.cs" />
     <Compile Include="Exceptions\ArgumentCountException.cs" />
@@ -132,6 +134,7 @@
     <Compile Include="IRC\Exceptions\OperationNotSupportedException.cs" />
     <Compile Include="IRC\Interfaces\IIrcClient.cs" />
     <Compile Include="IRC\Events\InviteEventArgs.cs" />
+    <Compile Include="IRC\Messages\Notice.cs" />
     <Compile Include="IRC\Messages\PrivateMessage.cs" />
     <Compile Include="IRC\Model\DestinationFlags.cs" />
     <Compile Include="IRC\Model\IrcChannel.cs" />
@@ -179,15 +182,19 @@
     <Compile Include="Model\CommandAliasRegistration.cs" />
     <Compile Include="Model\CommandRegistration.cs" />
     <Compile Include="Model\FlagGroupChannel.cs" />
+    <Compile Include="Model\RemoteSend.cs" />
     <Compile Include="Model\ResponseMessage.cs" />
     <Compile Include="Persistence\Mappings\CategoryWatcherItemMap.cs" />
     <Compile Include="Persistence\Mappings\CategoryWatcherMap.cs" />
     <Compile Include="Persistence\Mappings\CommandAliasMap.cs" />
     <Compile Include="Persistence\Mappings\FlagGroupChannelMap.cs" />
+    <Compile Include="Persistence\Mappings\RemoteSendMap.cs" />
     <Compile Include="Repositories\ChannelRepository.cs" />
     <Compile Include="Repositories\Interfaces\IBasicRepository.cs" />
     <Compile Include="Repositories\Interfaces\IChannelRepository.cs" />
     <Compile Include="Repositories\Interfaces\IResponseMessageRepository.cs" />
+    <Compile Include="Repositories\Interfaces\IRemoteSendRepository.cs" />
+    <Compile Include="Repositories\RemoteSendRepository.cs" />
     <Compile Include="Repositories\ResponseMessageRepository.cs" />
     <Compile Include="Services\Interfaces\IInviteHandlerService.cs" />
     <Compile Include="Services\Interfaces\IMediaWikiApiService.cs" />
@@ -324,7 +331,6 @@
     <Compile Include="Legacy\Commands\FunStuff\SayHi.cs" />
     <Compile Include="Legacy\Commands\Set.cs" />
     <Compile Include="Legacy\Commands\Silence.cs" />
-    <Compile Include="Legacy\Commands\ThreadStatus.cs" />
     <Compile Include="Legacy\Commands\Time.cs" />
     <Compile Include="Legacy\Commands\UserInfo.cs" />
     <Compile Include="Legacy\Commands\Welcomer.cs" />
@@ -336,8 +342,6 @@
     <Compile Include="Services\Interfaces\IMessageService.cs" />
     <Compile Include="Services\MessageService.cs" />
     <Compile Include="Startup\Resolvers\AppSettingsDependencyResolver.cs" />
-    <Compile Include="Threading\IThreadedSystem.cs" />
-    <Compile Include="Threading\ThreadList.cs" />
     <Compile Include="Startup\WindsorServiceLocator.cs" />
     <Compile Include="TypedFactories\ICommandTypedFactory.cs" />
     <Compile Include="TypedFactories\IKeywordCommandFactory.cs" />

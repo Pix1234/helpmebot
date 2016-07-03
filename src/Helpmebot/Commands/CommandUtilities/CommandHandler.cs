@@ -162,7 +162,15 @@ namespace Helpmebot.Commands.CommandUtilities
                                     suppressMessage = false;
                                     break;
                                 case CommandResponseDestination.Default:
-                                    destination = command.CommandSource;
+                                    if (command.CommandSource == client.Nickname)
+                                    {
+                                        // PMs to the bot.
+                                        destination = command.User.Nickname;
+                                    }
+                                    else
+                                    {
+                                        destination = command.CommandSource;
+                                    }
                                     break;
                                 default:
                                     destination = command.CommandSource;
@@ -172,7 +180,14 @@ namespace Helpmebot.Commands.CommandUtilities
 
                             if (!suppressMessage)
                             {
-                                client.Send(new PrivateMessage(destination, x.CompileMessage()));
+                                if (x.Type == CommandResponseType.Notice)
+                                {
+                                    client.Send(new Notice(destination, x.CompileMessage()));
+                                }
+                                else
+                                {
+                                    client.Send(new PrivateMessage(destination, x.CompileMessage()));
+                                }
                             }
                         });
             }

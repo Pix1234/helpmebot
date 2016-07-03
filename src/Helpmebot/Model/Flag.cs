@@ -60,7 +60,7 @@ namespace Helpmebot.Model
         /// Configuration access to the bot. This should either be granted per-channel or globally
         /// </summary>
         public const string Configuration = "C";
-
+        
         #endregion
     }
 }

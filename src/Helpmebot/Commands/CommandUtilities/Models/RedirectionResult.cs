@@ -39,6 +39,11 @@ namespace Helpmebot.Commands.CommandUtilities.Models
         /// </summary>
         private readonly IEnumerable<string> target;
 
+        /// <summary>
+        /// The channel targets
+        /// </summary>
+        private readonly IEnumerable<string> channelTargets;
+
         #endregion
 
         #region Constructors and Destructors
@@ -52,10 +57,14 @@ namespace Helpmebot.Commands.CommandUtilities.Models
         /// <param name="target">
         /// The target.
         /// </param>
-        public RedirectionResult(IEnumerable<string> arguments, IEnumerable<string> target)
+        /// <param name="channelTargets">
+        /// The channel targets.
+        /// </param>
+        public RedirectionResult(IEnumerable<string> arguments, IEnumerable<string> target, IEnumerable<string> channelTargets)
         {
             this.arguments = arguments;
             this.target = target;
+            this.channelTargets = channelTargets;
         }
 
         #endregion
@@ -81,6 +90,17 @@ namespace Helpmebot.Commands.CommandUtilities.Models
             get
             {
                 return this.target;
+            }
+        }
+
+        /// <summary>
+        /// The channel targets
+        /// </summary>
+        public IEnumerable<string> ChannelTargets
+        {
+            get
+            {
+                return this.channelTargets;
             }
         }
 

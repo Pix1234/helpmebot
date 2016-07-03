@@ -52,6 +52,11 @@ namespace Helpmebot.Commands.CommandUtilities.Response
         public IEnumerable<string> RedirectionTarget { get; set; }
 
         /// <summary>
+        /// The type of response
+        /// </summary>
+        public CommandResponseType Type { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether ignore redirection.
         /// </summary>
         public bool IgnoreRedirection { get; set; }

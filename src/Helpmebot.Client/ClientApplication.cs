@@ -359,6 +359,21 @@ namespace Helpmebot.Client
                         CONSTRAINT commandalias_channel_id_fk FOREIGN KEY (channel) REFERENCES channel (id) ON DELETE CASCADE ON UPDATE CASCADE
                     )",
                 database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE TABLE remotesend
+                    (
+                        id CHAR(36) PRIMARY KEY NOT NULL,
+                        originchannel CHAR(36) NOT NULL,
+                        destinationchannel CHAR(36) NOT NULL,
+                        CONSTRAINT remotesend_originchannel_id_fk FOREIGN KEY (originchannel) REFERENCES channel (id),
+                        CONSTRAINT remotesend_destinationchannel_id_fk FOREIGN KEY (destinationchannel) REFERENCES channel (id)
+                    );",
+                database);
+
+            this.DoSingleSchemaChange(
+                @"CREATE UNIQUE INDEX remotesend_originchannel_destinationchannel_uindex ON remotesend (originchannel, destinationchannel)",
+                database);
         }
 
         /// <summary>

@@ -102,7 +102,7 @@ namespace Helpmebot.Repositories
                 try
                 {
                     this.logger.DebugFormat("Opening reader", name);
-                    reader = this.retrievalCommand.ExecuteReader(CommandBehavior.SingleRow);
+                    reader = this.retrievalCommand.ExecuteReader(CommandBehavior.SingleResult);
 
                     var success = reader.Read();
 
@@ -124,7 +124,22 @@ namespace Helpmebot.Repositories
                     if (reader != null && !reader.IsClosed)
                     {
                         this.logger.DebugFormat("Closing reader", name);
-                        reader.Close();
+                        try
+                        {
+                            reader.Close();
+                        }
+                        catch (MySqlException ex)
+                        {
+                            if (ex.Message.Contains("Variable 'sql_select_limit' can't be set to the value of '-1'"))
+                            {
+                                // wtf hibernate.
+                                this.logger.Warn("We've hit that hibernate issue... ", ex);
+                            }
+                            else
+                            {
+                                throw;
+                            }
+                        }
                     }
                 }
             }

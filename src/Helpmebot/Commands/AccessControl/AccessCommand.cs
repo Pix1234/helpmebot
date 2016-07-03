@@ -34,7 +34,6 @@ namespace Helpmebot.Commands.AccessControl
     using Helpmebot.IRC.Model;
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
-    using Helpmebot.Repositories;
 
     using NHibernate;
 

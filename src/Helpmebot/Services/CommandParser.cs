@@ -34,8 +34,10 @@ namespace Helpmebot.Services
     using Helpmebot.Commands.Interfaces;
     using Helpmebot.ExtensionMethods;
     using Helpmebot.IRC.Interfaces;
+    using Helpmebot.IRC.Messages;
     using Helpmebot.Model;
     using Helpmebot.Model.Interfaces;
+    using Helpmebot.Repositories.Interfaces;
     using Helpmebot.Services.Interfaces;
     using Helpmebot.TypedFactories;
 
@@ -63,6 +65,9 @@ namespace Helpmebot.Services
         /// </summary>
         private readonly Dictionary<string, Dictionary<CommandRegistration, Type>> commands;
 
+        /// <summary>
+        /// The command aliases currently registered.
+        /// </summary>
         private readonly Dictionary<string, Dictionary<CommandAliasRegistration, string>> aliases;
 
         /// <summary>
@@ -79,6 +84,10 @@ namespace Helpmebot.Services
         /// The logger.
         /// </summary>
         private readonly ILogger logger;
+
+        private readonly ISession databaseSession;
+
+        private readonly IRemoteSendRepository remoteSendRepository;
 
         #endregion
 
@@ -105,19 +114,25 @@ namespace Helpmebot.Services
         /// <param name="databaseSession">
         /// Database session for loading the aliases only
         /// </param>
+        /// <param name="remoteSendRepository">
+        /// 
+        /// </param>
         public CommandParser(
             string commandTrigger,
             ICommandTypedFactory commandFactory,
             IKeywordService keywordService,
             IKeywordCommandFactory keywordFactory,
             ILogger logger,
-            ISession databaseSession)
+            ISession databaseSession, 
+            IRemoteSendRepository remoteSendRepository)
         {
             this.commandTrigger = commandTrigger;
             this.commandFactory = commandFactory;
             this.keywordService = keywordService;
             this.keywordFactory = keywordFactory;
             this.logger = logger;
+            this.databaseSession = databaseSession;
+            this.remoteSendRepository = remoteSendRepository;
             var types = Assembly.GetExecutingAssembly().GetTypes();
 
             this.commands = new Dictionary<string, Dictionary<CommandRegistration, Type>>();
@@ -144,7 +159,7 @@ namespace Helpmebot.Services
                 }
             }
 
-            var commandAliases = databaseSession.CreateCriteria<CommandAlias>().List<CommandAlias>();
+            var commandAliases = this.databaseSession.CreateCriteria<CommandAlias>().List<CommandAlias>();
             this.aliases = new Dictionary<string, Dictionary<CommandAliasRegistration, string>>();
             foreach (var alias in commandAliases)
             {
@@ -198,6 +213,20 @@ namespace Helpmebot.Services
             var redirectionResult = this.ParseRedirection(originalArguments);
             IEnumerable<string> arguments = redirectionResult.Arguments.ToList();
 
+            var firstChannelTarget = redirectionResult.ChannelTargets.FirstOrDefault();
+            if (firstChannelTarget != null)
+            {
+                if (this.remoteSendRepository.CanRemoteSend(destination, firstChannelTarget))
+                {
+                    destination = firstChannelTarget;
+                }
+                else
+                {
+                    client.Send(new PrivateMessage(user.Nickname, string.Format("Remote send to channel {0} is not currently allowed", firstChannelTarget)));
+                    return null;
+                }
+            }
+
             var commandName = commandMessage.CommandName.ToLower(CultureInfo.InvariantCulture);
             var commandType = this.GetRegisteredCommand(commandName, destination);
 
@@ -244,66 +273,6 @@ namespace Helpmebot.Services
             return null;
         }
 
-        private Type GetRegisteredCommand(string commandName, string destination)
-        {
-            string realCommandName = this.DereferenceAlias(commandName, destination);
-
-            Dictionary<CommandRegistration, Type> commandRegistrationSet;
-            if (!this.commands.TryGetValue(realCommandName, out commandRegistrationSet))
-            {
-                // command doesn't exist anywhere
-                return null;
-            }
-
-            var channelRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == destination);
-
-            if (channelRegistration != null)
-            {
-                // This command is defined locally in this channel
-                return commandRegistrationSet[channelRegistration];
-            }
-
-            var globalRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == null);
-
-            if (globalRegistration != null)
-            {
-                // This command is not defined locally, but is defined globally
-                return commandRegistrationSet[globalRegistration];
-            }
-
-            // This command has a registration entry, but isn't defined in this channel or globally.
-            return null;
-        }
-
-        private string DereferenceAlias(string commandName, string destination)
-        {
-            Dictionary<CommandAliasRegistration, string> commandRegistrationSet;
-            if (!this.aliases.TryGetValue(commandName, out commandRegistrationSet))
-            {
-                // alias doesn't exist anywhere, return original command name
-                return commandName;
-            }
-
-            var channelRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == destination);
-
-            if (channelRegistration != null)
-            {
-                // This alias is defined locally in this channel
-                return commandRegistrationSet[channelRegistration];
-            }
-
-            var globalRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == null);
-
-            if (globalRegistration != null)
-            {
-                // This alias is not defined locally, but is defined globally
-                return commandRegistrationSet[globalRegistration];
-            }
-
-            // This command has a registration entry, but isn't defined in this channel or globally.
-            return commandName;
-        }
-
         /// <summary>
         /// The parse redirection.
         /// </summary>
@@ -316,16 +285,25 @@ namespace Helpmebot.Services
         public RedirectionResult ParseRedirection(IEnumerable<string> inputArguments)
         {
             var targetList = new List<string>();
+            var channelList = new List<string>();
             var parsedArguments = new List<string>();
 
-            bool redirecting = false;
+            var redirecting = false;
 
             foreach (var argument in inputArguments)
             {
                 if (redirecting)
                 {
                     redirecting = false;
-                    targetList.Add(argument);
+                    if (argument.StartsWith("#"))
+                    {
+                        channelList.Add(argument);
+                    }
+                    else
+                    {
+                        targetList.Add(argument);
+                    }
+                    
                     continue;
                 }
 
@@ -337,7 +315,17 @@ namespace Helpmebot.Services
 
                 if (argument.StartsWith(">"))
                 {
-                    targetList.Add(argument.Substring(1));
+                    var arg = argument.Substring(1);
+
+                    if (arg.StartsWith("#"))
+                    {
+                        channelList.Add(arg);
+                    }
+                    else
+                    {
+                        targetList.Add(arg);
+                    }
+
                     continue;
                 }
 
@@ -350,7 +338,7 @@ namespace Helpmebot.Services
                 parsedArguments.Add(">");
             }
 
-            return new RedirectionResult(parsedArguments, targetList);
+            return new RedirectionResult(parsedArguments, targetList, channelList);
         }
 
         /// <summary>
@@ -493,8 +481,72 @@ namespace Helpmebot.Services
 
             this.aliases[aliasName].Remove(commandAliasRegistration);
         }
+        
+        #endregion
 
+        #region Private Methods
+
+        private Type GetRegisteredCommand(string commandName, string destination)
+        {
+            string realCommandName = this.DereferenceAlias(commandName, destination);
+
+            Dictionary<CommandRegistration, Type> commandRegistrationSet;
+            if (!this.commands.TryGetValue(realCommandName, out commandRegistrationSet))
+            {
+                // command doesn't exist anywhere
+                return null;
+            }
+
+            var channelRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == destination);
+
+            if (channelRegistration != null)
+            {
+                // This command is defined locally in this channel
+                return commandRegistrationSet[channelRegistration];
+            }
+
+            var globalRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == null);
+
+            if (globalRegistration != null)
+            {
+                // This command is not defined locally, but is defined globally
+                return commandRegistrationSet[globalRegistration];
+            }
+
+            // This command has a registration entry, but isn't defined in this channel or globally.
+            return null;
+        }
+
+        private string DereferenceAlias(string commandName, string destination)
+        {
+            Dictionary<CommandAliasRegistration, string> commandRegistrationSet;
+            if (!this.aliases.TryGetValue(commandName, out commandRegistrationSet))
+            {
+                // alias doesn't exist anywhere, return original command name
+                return commandName;
+            }
+
+            var channelRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == destination);
+
+            if (channelRegistration != null)
+            {
+                // This alias is defined locally in this channel
+                return commandRegistrationSet[channelRegistration];
+            }
+
+            var globalRegistration = commandRegistrationSet.Keys.FirstOrDefault(x => x.Channel == null);
+
+            if (globalRegistration != null)
+            {
+                // This alias is not defined locally, but is defined globally
+                return commandRegistrationSet[globalRegistration];
+            }
+
+            // This command has a registration entry, but isn't defined in this channel or globally.
+            return commandName;
+        }
 
         #endregion
+
     }
 }
